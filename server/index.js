@@ -44,12 +44,12 @@ app.use('/api/', limiter);
 
 // Middleware
 app.use(express.json());
-// app.use(passport.initialize());
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
-  process.env.CLIENT_URL // For Vercel production deployment
+  process.env.CLIENT_URL,
+  process.env.VITE_SOCKET_URL, // Render production URL
 ].filter(Boolean);
 
 app.use(
