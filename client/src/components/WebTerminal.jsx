@@ -5,10 +5,16 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 
 export default function WebTerminal({ socket, roomId, height = 260 }) {
-  const termRef  = useRef(null);
-  const xtermRef = useRef(null);
-  const fitRef   = useRef(null);
-  const started  = useRef(false);
+  const termRef    = useRef(null);
+  const xtermRef   = useRef(null);
+  const fitRef     = useRef(null);
+  const started    = useRef(false);
+  const socketRef  = useRef(socket);
+
+  // Keep socketRef in sync with the latest socket prop
+  useEffect(() => {
+    socketRef.current = socket;
+  }, [socket]);
 
   // Boot terminal UI and connect to server
   useEffect(() => {
@@ -52,14 +58,10 @@ export default function WebTerminal({ socket, roomId, height = 260 }) {
     term.writeln('\x1b[90m  Connected to server — Full shell access\x1b[0m');
     term.writeln('');
 
-    if (!socket) {
-      term.writeln('\x1b[33m⏳ Waiting for connection...\x1b[0m');
-    }
-
-    // Forward keystrokes to server
+    // Forward keystrokes to server (use ref to avoid stale closure)
     term.onData((data) => {
-      if (socket) {
-        socket.emit('terminal-input', data);
+      if (socketRef.current) {
+        socketRef.current.emit('terminal-input', data);
       }
     });
 
