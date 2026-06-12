@@ -7,6 +7,10 @@ const WorkspaceFile = require('../models/WorkspaceFile');
 // Store active terminal sessions: Map<socketId, { process, roomId }>
 const terminalSessions = new Map();
 
+// Detect port patterns in terminal output
+const PORT_REGEX = /(?:localhost|127\.0\.0\.1):(\d{4,5})/gi;
+const PORT_REGEX2 = /(?:port|PORT)\s+(\d{4,5})/g;
+
 // Sync workspace files from MongoDB to the terminal's working directory
 async function syncFilesToDisk(roomId, workDir) {
   try {
@@ -45,25 +49,60 @@ function registerTerminalHandler(io, socket) {
     // Sync workspace files from DB to disk
     await syncFilesToDisk(roomId, workDir);
 
+    // Create a .bashrc for command history and prompt
+    const bashrc = `
+export PS1='\\033[1;32mcollabcode\\033[0m:\\033[1;34m\\w\\033[0m$ '
+export HISTSIZE=1000
+export HISTFILESIZE=2000
+export HISTFILE="${workDir}/.bash_history"
+shopt -s histappend
+`;
+    fs.writeFileSync(path.join(workDir, '.bashrc'), bashrc, 'utf8');
+
     try {
       // Use 'script' to allocate a pseudo-TTY on Linux
-      const proc = spawn('script', ['-qfc', 'bash --norc --noprofile -i', '/dev/null'], {
+      const proc = spawn('script', ['-qfc', `bash --rcfile ${path.join(workDir, '.bashrc')} -i`, '/dev/null'], {
         cwd: workDir,
         env: {
           ...process.env,
           TERM: 'xterm-256color',
           HOME: workDir,
-          PS1: '\\033[1;32mcollabcode\\033[0m:\\033[1;34m\\w\\033[0m$ ',
           PATH: process.env.PATH,
           LANG: 'en_US.UTF-8',
         },
       });
 
+      const detectedPorts = new Set();
       terminalSessions.set(socket.id, { process: proc, roomId });
 
-      // Stream stdout to client
+      // Stream stdout to client and detect server ports
       proc.stdout.on('data', (data) => {
-        socket.emit('terminal-output', data.toString('utf8'));
+        const text = data.toString('utf8');
+        socket.emit('terminal-output', text);
+
+        // Detect server ports in output
+        const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || '';
+        
+        let match;
+        PORT_REGEX.lastIndex = 0;
+        PORT_REGEX2.lastIndex = 0;
+        
+        while ((match = PORT_REGEX.exec(text)) !== null) {
+          const port = match[1];
+          if (!detectedPorts.has(port)) {
+            detectedPorts.add(port);
+            const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
+            socket.emit('terminal-output', `\r\n\x1b[1;36m🌐 Live Preview: \x1b[4m${proxyUrl}\x1b[0m\r\n`);
+          }
+        }
+        while ((match = PORT_REGEX2.exec(text)) !== null) {
+          const port = match[1];
+          if (!detectedPorts.has(port)) {
+            detectedPorts.add(port);
+            const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
+            socket.emit('terminal-output', `\r\n\x1b[1;36m🌐 Live Preview: \x1b[4m${proxyUrl}\x1b[0m\r\n`);
+          }
+        }
       });
 
       // Stream stderr to client
