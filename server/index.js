@@ -18,7 +18,7 @@ const roomRoutes = require('./routes/room.routes');
 // const githubRoutes = require('./routes/github.routes');
 // const userRoutes = require('./routes/user.routes');
 // const notificationRoutes = require('./routes/notification.routes');
-// const workspaceRoutes = require('./routes/workspace.routes');
+const workspaceRoutes = require('./routes/workspace.routes');
 // const googleAuthRoutes = require('./routes/google.auth.routes');
 // const passport = require('passport');
 
@@ -74,6 +74,7 @@ app.get('/api/health', (req, res) => {
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
+app.use('/api/workspaces', workspaceRoutes);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {

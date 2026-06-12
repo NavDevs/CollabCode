@@ -45,10 +45,11 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
   const loadFiles = async () => {
     try {
       const { data } = await api.get(`/workspaces/${roomId}/files`);
-      setFiles(data.files || []);
+      const fileList = data?.files || [];
+      setFiles(fileList);
       
-      if (data.files.length > 0 && openPaths.length === 0) {
-        const defaultFile = data.files.find(f => f.path === '/main.js') || data.files[0];
+      if (fileList.length > 0 && openPaths.length === 0) {
+        const defaultFile = fileList.find(f => f.path === '/main.js') || fileList[0];
         setOpenPaths([defaultFile.path]);
         setActivePath(defaultFile.path);
       }
