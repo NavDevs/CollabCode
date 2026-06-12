@@ -98,15 +98,29 @@ app.use('/api/proxy/:port', (req, res) => {
     path: targetPath,
     method: req.method,
     headers: { ...req.headers, host: `127.0.0.1:${port}` },
+    timeout: 10000,
   };
 
   const proxyReq = http.request(options, (proxyRes) => {
-    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    // Ensure UTF-8 charset for text responses so emojis render correctly
+    const headers = { ...proxyRes.headers };
+    const contentType = headers['content-type'] || '';
+    if (contentType.includes('text/') && !contentType.includes('charset')) {
+      headers['content-type'] = contentType + '; charset=utf-8';
+    }
+    res.writeHead(proxyRes.statusCode, headers);
     proxyRes.pipe(res);
   });
 
+  proxyReq.on('timeout', () => {
+    proxyReq.destroy();
+    res.status(504).send('<h2>Server timeout</h2><p>The server took too long to respond.</p>');
+  });
+
   proxyReq.on('error', () => {
-    res.status(502).send(`<h2>No server running on port ${port}</h2><p>Start a server in the terminal first, e.g.:<br><code>node main.js</code></p>`);
+    if (!res.headersSent) {
+      res.status(502).send(`<meta charset="utf-8"><h2>No server running on port ${port}</h2><p>Start a server in the terminal first, e.g.:<br><code>node main.js</code></p>`);
+    }
   });
 
   req.pipe(proxyReq);

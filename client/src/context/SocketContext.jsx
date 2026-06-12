@@ -6,9 +6,9 @@ const SocketContext = createContext(null);
 
 export const useSocket = () => useContext(SocketContext);
 
-// Use '/' so Vite's dev proxy forwards socket.io to the backend.
-// In production, set VITE_SOCKET_URL to the actual server URL.
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.DEV ? '/' : 'http://localhost:5000');
+// In production (single-service deploy), socket connects to same origin.
+// In dev, Vite proxy handles forwarding.
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';
 
 export function SocketProvider({ children }) {
   const { token, isAuthenticated } = useAuth();
