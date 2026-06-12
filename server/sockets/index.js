@@ -6,6 +6,7 @@ const { registerYjsHandler } = require('./yjs.handler');
 const { registerChatHandler } = require('./chat.handler');
 const { registerCursorHandler } = require('./cursor.handler');
 const { registerExecuteHandler } = require('./execute.handler');
+const { registerTerminalHandler } = require('./terminal.handler');
 const yjsService = require('../services/yjs.service');
 
 const setupSocket = (io) => {
@@ -50,6 +51,7 @@ const setupSocket = (io) => {
     registerChatHandler(io, socket);
     registerCursorHandler(io, socket);
     registerExecuteHandler(io, socket);
+    registerTerminalHandler(io, socket);
 
     // Handle disconnect
     socket.on('disconnect', async () => {

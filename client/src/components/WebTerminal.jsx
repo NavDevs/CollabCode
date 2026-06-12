@@ -3,67 +3,14 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
-import { spawnProcess } from '../services/webcontainer';
 
-const PROMPT = '\r\n\x1b[1;32m❯\x1b[0m ';
+export default function WebTerminal({ socket, roomId, height = 260 }) {
+  const termRef  = useRef(null);
+  const xtermRef = useRef(null);
+  const fitRef   = useRef(null);
+  const started  = useRef(false);
 
-export default function WebTerminal({ wc, onPreviewUrl, height = 260 }) {
-  const termRef    = useRef(null);
-  const xtermRef   = useRef(null);
-  const fitRef     = useRef(null);
-  const processRef = useRef(null);
-  const inputBuf   = useRef('');
-
-  const writePrompt = useCallback(() => {
-    xtermRef.current?.write(PROMPT);
-  }, []);
-
-  // Kill current process and run a new command
-  const runCommand = useCallback(async (cmdLine) => {
-    if (!wc) return;
-    const term = xtermRef.current;
-    if (!term) return;
-
-    const parts = cmdLine.trim().split(/\s+/);
-    const cmd   = parts[0];
-    const args  = parts.slice(1);
-
-    if (!cmd) { writePrompt(); return; }
-
-    // Kill any previous process
-    if (processRef.current) {
-      try { processRef.current.kill(); } catch {}
-      processRef.current = null;
-    }
-
-    try {
-      const proc = await spawnProcess(wc, cmd, args);
-      processRef.current = proc;
-
-      // Pipe stdout → terminal
-      proc.output.pipeTo(
-        new WritableStream({
-          write(data) { term.write(data); },
-        })
-      );
-
-      // Watch for dev-server port → auto preview
-      wc.on('server-ready', (port, url) => {
-        term.write(`\r\n\x1b[1;36m🌐 Server ready → ${url}\x1b[0m\r\n`);
-        if (onPreviewUrl) onPreviewUrl(url);
-      });
-
-      const exit = await proc.exit;
-      if (exit !== 0) {
-        term.write(`\r\n\x1b[31mProcess exited with code ${exit}\x1b[0m`);
-      }
-    } catch (err) {
-      term.write(`\r\n\x1b[31m✗ ${err.message}\x1b[0m`);
-    }
-    writePrompt();
-  }, [wc, writePrompt, onPreviewUrl]);
-
-  // Boot terminal UI
+  // Boot terminal UI and connect to server
   useEffect(() => {
     if (!termRef.current || xtermRef.current) return;
 
@@ -90,7 +37,7 @@ export default function WebTerminal({ wc, onPreviewUrl, height = 260 }) {
       allowProposedApi: true,
     });
 
-    const fit  = new FitAddon();
+    const fit   = new FitAddon();
     const links = new WebLinksAddon();
     term.loadAddon(fit);
     term.loadAddon(links);
@@ -102,51 +49,29 @@ export default function WebTerminal({ wc, onPreviewUrl, height = 260 }) {
 
     // Welcome banner
     term.writeln('\x1b[1;37m  CollabCode Terminal  \x1b[0m');
-    term.writeln('\x1b[90m  Powered by WebContainers — Node.js runs in your browser\x1b[0m');
+    term.writeln('\x1b[90m  Connected to server — Full shell access\x1b[0m');
     term.writeln('');
 
-    if (!wc) {
-      term.writeln('\x1b[33m⏳ Booting WebContainer...\x1b[0m');
-    } else {
-      term.writeln('\x1b[32m✓ WebContainer ready. Type a command below.\x1b[0m');
-      term.writeln('\x1b[90m  Try: npm install   npm run dev   node index.js\x1b[0m');
-      writePrompt();
+    if (!socket) {
+      term.writeln('\x1b[33m⏳ Waiting for connection...\x1b[0m');
     }
 
-    // Handle keyboard input
-    term.onKey(({ key, domEvent }) => {
-      const ev = domEvent;
-
-      // Ctrl+C → kill process
-      if (ev.ctrlKey && ev.key === 'c') {
-        if (processRef.current) {
-          try { processRef.current.kill(); } catch {}
-          processRef.current = null;
-        }
-        term.write('^C');
-        inputBuf.current = '';
-        writePrompt();
-        return;
-      }
-
-      if (ev.key === 'Enter') {
-        term.write('\r\n');
-        const cmd = inputBuf.current;
-        inputBuf.current = '';
-        runCommand(cmd);
-      } else if (ev.key === 'Backspace') {
-        if (inputBuf.current.length > 0) {
-          inputBuf.current = inputBuf.current.slice(0, -1);
-          term.write('\b \b');
-        }
-      } else if (!ev.ctrlKey && !ev.altKey && !ev.metaKey) {
-        inputBuf.current += key;
-        term.write(key);
+    // Forward keystrokes to server
+    term.onData((data) => {
+      if (socket) {
+        socket.emit('terminal-input', data);
       }
     });
 
     // Resize observer
-    const ro = new ResizeObserver(() => { try { fit.fit(); } catch {} });
+    const ro = new ResizeObserver(() => {
+      try {
+        fit.fit();
+        if (socket && term.cols && term.rows) {
+          socket.emit('terminal-resize', { cols: term.cols, rows: term.rows });
+        }
+      } catch {}
+    });
     ro.observe(termRef.current);
 
     return () => {
@@ -158,14 +83,39 @@ export default function WebTerminal({ wc, onPreviewUrl, height = 260 }) {
   // eslint-disable-next-line
   }, []);
 
-  // When wc becomes available after terminal is mounted, show ready msg
+  // Connect socket events when socket becomes available
   useEffect(() => {
-    if (!xtermRef.current || !wc) return;
-    xtermRef.current.writeln('\x1b[32m✓ WebContainer ready!\x1b[0m');
-    xtermRef.current.writeln('\x1b[90m  Try: npm install   npm run dev   node index.js\x1b[0m');
-    writePrompt();
-  // eslint-disable-next-line
-  }, [wc]);
+    if (!socket || !xtermRef.current || started.current) return;
+
+    const term = xtermRef.current;
+
+    // Listen for terminal output from server
+    const onOutput = (data) => {
+      term.write(data);
+    };
+
+    const onReady = () => {
+      term.writeln('\x1b[32m✓ Terminal ready!\x1b[0m');
+      term.writeln('\x1b[90m  Try: ls, node --version, python3 --version, npm init\x1b[0m');
+      term.writeln('');
+    };
+
+    socket.on('terminal-output', onOutput);
+    socket.on('terminal-ready', onReady);
+
+    // Start the terminal session on the server
+    if (roomId) {
+      socket.emit('terminal-start', { roomId });
+      started.current = true;
+    }
+
+    return () => {
+      socket.off('terminal-output', onOutput);
+      socket.off('terminal-ready', onReady);
+      socket.emit('terminal-kill');
+      started.current = false;
+    };
+  }, [socket, roomId]);
 
   return (
     <div style={{
@@ -190,7 +140,7 @@ export default function WebTerminal({ wc, onPreviewUrl, height = 260 }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#10B981' }}>terminal</span>
           <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', letterSpacing: '.06em', textTransform: 'uppercase' }}>
-            Terminal {!wc && <span style={{ color: '#F59E0B' }}>— booting…</span>}
+            Terminal {!socket && <span style={{ color: '#F59E0B' }}>— connecting…</span>}
           </span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -198,26 +148,31 @@ export default function WebTerminal({ wc, onPreviewUrl, height = 260 }) {
             onClick={() => {
               xtermRef.current?.clear();
               xtermRef.current?.writeln('\x1b[90m  Terminal cleared\x1b[0m');
-              writePrompt();
             }}
             style={{ background:'none', border:'none', color:'#6B7280', cursor:'pointer', fontSize: 11, padding: '2px 6px' }}
             title="Clear terminal"
           >
             clear
           </button>
-          {processRef.current && (
-            <button
-              onClick={() => {
-                try { processRef.current?.kill(); } catch {}
-                processRef.current = null;
-                xtermRef.current?.write('\r\n\x1b[31m^C Process killed\x1b[0m');
-                writePrompt();
-              }}
-              style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', color:'#EF4444', cursor:'pointer', fontSize: 11, padding: '2px 8px', borderRadius: 4 }}
-            >
-              Kill
-            </button>
-          )}
+          <button
+            onClick={() => {
+              if (socket) {
+                socket.emit('terminal-kill');
+                started.current = false;
+                xtermRef.current?.writeln('\r\n\x1b[90m[Session ended]\x1b[0m');
+                // Restart after a brief pause
+                setTimeout(() => {
+                  if (roomId && socket) {
+                    socket.emit('terminal-start', { roomId });
+                    started.current = true;
+                  }
+                }, 500);
+              }
+            }}
+            style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', color:'#EF4444', cursor:'pointer', fontSize: 11, padding: '2px 8px', borderRadius: 4 }}
+          >
+            Restart
+          </button>
         </div>
       </div>
 

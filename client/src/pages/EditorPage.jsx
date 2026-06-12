@@ -13,7 +13,6 @@ import GithubPanel from '../components/GithubPanel';
 import FileTree from '../components/FileTree';
 import RoomSettingsModal from '../components/RoomSettingsModal';
 import WebTerminal from '../components/WebTerminal';
-import { bootContainer, mountFiles, writeFile } from '../services/webcontainer';
 
 const EXT   = { python:'py',typescript:'ts',javascript:'js',html:'html',css:'css',go:'go',rust:'rs',java:'java',cpp:'cpp',ruby:'rb' };
 const ICON  = { javascript:'javascript',typescript:'javascript',python:'database',go:'bolt',html:'html',css:'css',rust:'memory',java:'terminal',cpp:'terminal' };
@@ -125,9 +124,7 @@ export default function EditorPage() {
   const [activePath,  setActivePath]  = useState(null);
   const [openPaths,   setOpenPaths]   = useState([]);
 
-  // WebContainer state
-  const [wc,          setWc]          = useState(null);
-  const wcMounted     = useRef(false);
+
 
   const editorRef    = useRef(null);   // exposes getValue()
   const ydocRef      = useRef(null);   // local Y.Doc
@@ -139,38 +136,7 @@ export default function EditorPage() {
     return () => { if (socket && roomId) leaveRoom(roomId); };
   }, [roomId]);
 
-  /* ── Boot WebContainer once room is loaded ── */
-  useEffect(() => {
-    if (!room) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const container = await bootContainer();
-        if (cancelled) return;
-        // Fetch all workspace files and mount them
-        const { data } = await api.get(`/workspaces/${roomId}/files`);
-        const files = data.files || [];
-        // Fetch content for each file
-        const filesWithContent = await Promise.all(
-          files.map(async (f) => {
-            try {
-              const r = await api.get(`/workspaces/${roomId}/preview${f.path}`, { responseType: 'text' });
-              return { path: f.path, content: typeof r.data === 'string' ? r.data : JSON.stringify(r.data, null, 2) || '' };
-            } catch {
-              return { path: f.path, content: '' };
-            }
-          })
-        );
-        await mountFiles(container, filesWithContent);
-        wcMounted.current = true;
-        if (!cancelled) setWc(container);
-      } catch (err) {
-        console.warn('[WebContainer] boot failed:', err.message);
-      }
-    })();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line
-  }, [room]);
+
 
   /* ── Socket setup for Yjs (runs on activePath change) ── */
   useEffect(() => {
@@ -566,10 +532,7 @@ export default function EditorPage() {
                       const update = Y.encodeStateAsUpdate(ydoc);
                       socket.emit('yjs-update', { roomId, path: activePath, update: Array.from(update) });
                     }
-                    // Sync live edits to WebContainer filesystem
-                    if (wc && activePath && wcMounted.current) {
-                      writeFile(wc, activePath, val || '').catch(() => {});
-                    }
+
                   }}
                   onCursorChange={onCursor}
                 />
@@ -633,14 +596,9 @@ export default function EditorPage() {
             {/* WebContainer Terminal */}
             {showTerminal && (
               <WebTerminal
-                wc={wc}
+                socket={socket}
+                roomId={roomId}
                 height={termHeight}
-                onPreviewUrl={(url) => {
-                  setPreviewUrl(url);
-                  setPreviewIframeSrc(url);
-                  setShowPreview(true);
-                  toast.success(`🌐 Server running at ${url}`, { duration: 5000 });
-                }}
               />
             )}
           </div>
