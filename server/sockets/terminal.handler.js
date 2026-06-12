@@ -1,6 +1,7 @@
 const os = require('os');
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 // Store active terminal sessions: Map<socketId, { process, roomId }>
 const terminalSessions = new Map();
@@ -14,47 +15,46 @@ function registerTerminalHandler(io, socket) {
     // Kill existing session if any
     if (terminalSessions.has(socket.id)) {
       const old = terminalSessions.get(socket.id);
-      try { old.process.kill(); } catch {}
+      try { old.process.kill('SIGKILL'); } catch {}
       terminalSessions.delete(socket.id);
     }
 
     // Create a workspace directory for this room
     const workDir = path.join(os.tmpdir(), `collabcode_ws_${roomId}`);
     try {
-      require('fs').mkdirSync(workDir, { recursive: true });
+      fs.mkdirSync(workDir, { recursive: true });
     } catch {}
 
-    // Determine shell
-    const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/bash';
-    const shellArgs = process.platform === 'win32' ? [] : ['--login'];
-
     try {
-      const proc = spawn(shell, shellArgs, {
+      // Use 'script' to allocate a pseudo-TTY on Linux
+      // This gives us a real interactive bash with prompt, colors, etc.
+      const proc = spawn('script', ['-qfc', 'bash --norc --noprofile -i', '/dev/null'], {
         cwd: workDir,
         env: {
           ...process.env,
           TERM: 'xterm-256color',
           HOME: workDir,
-          PS1: '\\[\\033[1;32m\\]collabcode\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]$ ',
+          PS1: '\\033[1;32mcollabcode\\033[0m:\\033[1;34m\\w\\033[0m$ ',
+          PATH: process.env.PATH,
+          LANG: 'en_US.UTF-8',
         },
-        stdio: ['pipe', 'pipe', 'pipe'],
       });
 
       terminalSessions.set(socket.id, { process: proc, roomId });
 
       // Stream stdout to client
       proc.stdout.on('data', (data) => {
-        socket.emit('terminal-output', data.toString());
+        socket.emit('terminal-output', data.toString('utf8'));
       });
 
       // Stream stderr to client
       proc.stderr.on('data', (data) => {
-        socket.emit('terminal-output', data.toString());
+        socket.emit('terminal-output', data.toString('utf8'));
       });
 
       // Handle process exit
       proc.on('close', (code) => {
-        socket.emit('terminal-output', `\r\n\x1b[90m[Process exited with code ${code}]\x1b[0m\r\n`);
+        socket.emit('terminal-output', `\r\n\x1b[90m[Session ended]\x1b[0m\r\n`);
         terminalSessions.delete(socket.id);
       });
 
@@ -84,17 +84,16 @@ function registerTerminalHandler(io, socket) {
     }
   });
 
-  // Resize terminal (for future PTY support)
+  // Resize terminal
   socket.on('terminal-resize', ({ cols, rows }) => {
-    // With child_process.spawn, resize is not supported
-    // This is a placeholder for when node-pty is used
+    // Resize not supported without node-pty, but we accept the event silently
   });
 
   // Kill terminal
   socket.on('terminal-kill', () => {
     const session = terminalSessions.get(socket.id);
     if (session) {
-      try { session.process.kill(); } catch {}
+      try { session.process.kill('SIGKILL'); } catch {}
       terminalSessions.delete(socket.id);
       console.log(`📟 Terminal killed for ${socket.user.username}`);
     }
@@ -104,7 +103,7 @@ function registerTerminalHandler(io, socket) {
   socket.on('disconnect', () => {
     const session = terminalSessions.get(socket.id);
     if (session) {
-      try { session.process.kill(); } catch {}
+      try { session.process.kill('SIGKILL'); } catch {}
       terminalSessions.delete(socket.id);
     }
   });
