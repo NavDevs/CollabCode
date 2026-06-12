@@ -2,14 +2,31 @@ const os = require('os');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const WorkspaceFile = require('../models/WorkspaceFile');
 
 // Store active terminal sessions: Map<socketId, { process, roomId }>
 const terminalSessions = new Map();
 
+// Sync workspace files from MongoDB to the terminal's working directory
+async function syncFilesToDisk(roomId, workDir) {
+  try {
+    const files = await WorkspaceFile.find({ roomId });
+    for (const file of files) {
+      const relativePath = file.path.startsWith('/') ? file.path.slice(1) : file.path;
+      const absPath = path.join(workDir, relativePath);
+      fs.mkdirSync(path.dirname(absPath), { recursive: true });
+      fs.writeFileSync(absPath, file.content || '', 'utf8');
+    }
+    console.log(`📂 Synced ${files.length} files to ${workDir}`);
+  } catch (err) {
+    console.error('[terminal] Failed to sync files:', err.message);
+  }
+}
+
 function registerTerminalHandler(io, socket) {
   
   // Start a new terminal session
-  socket.on('terminal-start', ({ roomId }) => {
+  socket.on('terminal-start', async ({ roomId }) => {
     if (!roomId) return;
 
     // Kill existing session if any
@@ -25,9 +42,11 @@ function registerTerminalHandler(io, socket) {
       fs.mkdirSync(workDir, { recursive: true });
     } catch {}
 
+    // Sync workspace files from DB to disk
+    await syncFilesToDisk(roomId, workDir);
+
     try {
       // Use 'script' to allocate a pseudo-TTY on Linux
-      // This gives us a real interactive bash with prompt, colors, etc.
       const proc = spawn('script', ['-qfc', 'bash --norc --noprofile -i', '/dev/null'], {
         cwd: workDir,
         env: {
@@ -86,7 +105,7 @@ function registerTerminalHandler(io, socket) {
 
   // Resize terminal
   socket.on('terminal-resize', ({ cols, rows }) => {
-    // Resize not supported without node-pty, but we accept the event silently
+    // Resize not supported without node-pty
   });
 
   // Kill terminal
