@@ -100,8 +100,30 @@ export default function WebTerminal({ socket, roomId, height = 260 }) {
       term.writeln('');
     };
 
+    // Listen for code execution output (from Run button)
+    const onExecStart = ({ language, runner }) => {
+      term.writeln(`\r\n\x1b[1;36m▶ ${runner} is running ${language}...\x1b[0m`);
+    };
+
+    const onExecOutput = ({ type, data }) => {
+      if (type === 'stdout') {
+        term.write(data);
+      } else if (type === 'stderr') {
+        term.write(`\x1b[31m${data}\x1b[0m`);
+      }
+    };
+
+    const onExecDone = ({ exitCode, duration, language, runner }) => {
+      const color = exitCode === 0 ? '32' : '31';
+      const icon = exitCode === 0 ? '✓' : '✗';
+      term.writeln(`\r\n\x1b[${color}m${icon} Process exited with code ${exitCode}\x1b[0m \x1b[90m(${duration}ms)\x1b[0m`);
+    };
+
     socket.on('terminal-output', onOutput);
     socket.on('terminal-ready', onReady);
+    socket.on('exec-start', onExecStart);
+    socket.on('exec-output', onExecOutput);
+    socket.on('exec-done', onExecDone);
 
     // Start the terminal session on the server
     if (roomId) {
@@ -112,6 +134,9 @@ export default function WebTerminal({ socket, roomId, height = 260 }) {
     return () => {
       socket.off('terminal-output', onOutput);
       socket.off('terminal-ready', onReady);
+      socket.off('exec-start', onExecStart);
+      socket.off('exec-output', onExecOutput);
+      socket.off('exec-done', onExecDone);
       socket.emit('terminal-kill');
       started.current = false;
     };
