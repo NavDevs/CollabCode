@@ -14,6 +14,7 @@ export function AuthProvider({ children }) {
   const { isLoaded: isAuthLoaded, isSignedIn, getToken, signOut } = useClerkAuth();
   const { isLoaded: isUserLoaded, user: clerkUser } = useClerkUser();
   const [dbUser, setDbUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,16 +23,20 @@ export function AuthProvider({ children }) {
       if (isAuthLoaded && isUserLoaded) {
         if (isSignedIn && clerkUser) {
           try {
-            const token = await getToken();
+            const t = await getToken();
+            if (isMounted) setToken(t);
             const { data } = await api.get('/auth/me', {
-              headers: { Authorization: `Bearer ${token}` }
+              headers: { Authorization: `Bearer ${t}` }
             });
             if (isMounted) setDbUser(data.user);
           } catch (e) {
             console.error('Failed to sync DB user', e);
           }
         } else {
-          if (isMounted) setDbUser(null);
+          if (isMounted) {
+            setDbUser(null);
+            setToken(null);
+          }
         }
         if (isMounted) setLoading(false);
       }
@@ -52,7 +57,7 @@ export function AuthProvider({ children }) {
       value={{ 
         user: dbUser, 
         setUser: setDbUser, 
-        token: null, 
+        token, 
         loading, 
         login, 
         register, 
