@@ -29,7 +29,14 @@ export default function Login() {
         </div>
 
         <div className="flex justify-center">
-          <SignIn appearance={{ baseTheme: dark }} routing="path" path="/login" signUpUrl="/register" fallbackRedirectUrl="/dashboard" />
+          <SignIn 
+            appearance={{ baseTheme: dark }} 
+            routing="path" 
+            path="/login" 
+            signUpUrl="/register" 
+            fallbackRedirectUrl="/dashboard"
+            transferable={true}
+          />
         </div>
       </div>
     </div>
