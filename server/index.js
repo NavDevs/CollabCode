@@ -83,6 +83,35 @@ app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 
+// Proxy route: forwards requests to user-started servers in the terminal
+app.use('/api/proxy/:port', (req, res) => {
+  const port = parseInt(req.params.port);
+  if (isNaN(port) || port < 1024 || port > 65535) {
+    return res.status(400).json({ error: 'Invalid port' });
+  }
+
+  const http = require('http');
+  const targetPath = req.url || '/';
+  const options = {
+    hostname: '127.0.0.1',
+    port,
+    path: targetPath,
+    method: req.method,
+    headers: { ...req.headers, host: `127.0.0.1:${port}` },
+  };
+
+  const proxyReq = http.request(options, (proxyRes) => {
+    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    proxyRes.pipe(res);
+  });
+
+  proxyReq.on('error', () => {
+    res.status(502).send(`<h2>No server running on port ${port}</h2><p>Start a server in the terminal first, e.g.:<br><code>node main.js</code></p>`);
+  });
+
+  req.pipe(proxyReq);
+});
+
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
   const clientDist = path.join(__dirname, '../client/dist');
