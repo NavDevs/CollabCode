@@ -77,9 +77,16 @@ app.use('/api/rooms', roomRoutes);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/dist')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../client/dist', 'index.html'));
+  const clientDist = path.join(__dirname, '../client/dist');
+  app.use(express.static(clientDist));
+  
+  // Only serve index.html for frontend routes (not API, not files with extensions)
+  app.get('*', (req, res, next) => {
+    // Skip if the request looks like an API call or a file with an extension
+    if (req.path.startsWith('/api') || req.path.includes('.')) {
+      return next();
+    }
+    res.sendFile(path.resolve(clientDist, 'index.html'));
   });
 }
 
