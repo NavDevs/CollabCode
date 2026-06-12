@@ -26,8 +26,16 @@ const app = express();
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
   frameguard: false,
 }));
+
+// Cross-origin isolation headers required by WebContainers (SharedArrayBuffer)
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+  next();
+});
 
 // Rate limiting: max 100 requests per minute per IP for the API
 const limiter = rateLimit({
