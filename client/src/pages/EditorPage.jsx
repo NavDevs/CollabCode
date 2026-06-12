@@ -108,9 +108,7 @@ export default function EditorPage() {
   const [pos,         setPos]         = useState({ line:1, col:1 });
   const [running,     setRunning]     = useState(false);
   const [showTerminal,setShowTerminal]= useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewUrl, setPreviewUrl]   = useState(`/api/workspaces/${roomId}/preview/index.html`);
-  const [previewIframeSrc, setPreviewIframeSrc] = useState(`/api/workspaces/${roomId}/preview/index.html`);
+
   const [fileTreeRefresh, setFileTreeRefresh] = useState(0);
   const [termHeight,  setTermHeight]  = useState(220);
   const [showShare,   setShowShare]   = useState(false);
@@ -366,23 +364,6 @@ export default function EditorPage() {
             </button>
           )}
 
-          {/* Live Preview Button */}
-          <button
-            onClick={() => setShowPreview(prev => !prev)}
-            style={{
-              display:'flex',alignItems:'center',gap:6,
-              background: showPreview ? 'rgba(5,150,105,.2)' : 'rgba(255,255,255,.05)',
-              color: showPreview ? '#10B981' : '#F3F4F6',
-              padding:'6px 14px',borderRadius:8,fontSize:12,fontWeight:600,
-              border: showPreview ? '1px solid rgba(5,150,105,.5)' : '1px solid rgba(255,255,255,.1)',
-              cursor:'pointer',transition:'all .15s', height: 32
-            }}
-            onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-1px)'; }}
-            onMouseLeave={e=>{ e.currentTarget.style.transform=''; }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize:16 }}>visibility</span>
-            Preview
-          </button>
         </div>
 
         {/* Right */}
@@ -513,7 +494,7 @@ export default function EditorPage() {
             {/* Monaco editor + Preview */}
             <div style={{ flex:1,position:'relative',overflow:'hidden', display: 'flex' }}>
               
-              <div style={{ flex:1, position:'relative', borderRight: showPreview ? '1px solid rgba(255,255,255,.1)' : 'none' }}>
+              <div style={{ flex:1, position:'relative' }}>
                 <Editor
                   ref={editorRef}
                   language={room?.language||'javascript'}
@@ -552,44 +533,7 @@ export default function EditorPage() {
                 ))}
               </div>
 
-              {/* Preview Iframe */}
-              {showPreview && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff' }}>
-                  <div style={{ height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 10px', background: '#F3F4F6', borderBottom: '1px solid #D1D5DB' }}>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#EF4444' }} />
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#F59E0B' }} />
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10B981' }} />
-                    </div>
-                    <input 
-                      value={previewUrl}
-                      onChange={(e) => setPreviewUrl(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          setPreviewIframeSrc(previewUrl + `?t=${Date.now()}`);
-                        }
-                      }}
-                      placeholder="/api/workspaces/.../preview/index.html"
-                      style={{ flex: 1, marginLeft: 14, background: '#fff', border: '1px solid #E5E7EB', color: '#374151', borderRadius: 4, padding: '4px 8px', fontSize: 12, outline: 'none' }}
-                    />
-                    <button onClick={() => {
-                        // Reload preview with a cache-busting timestamp
-                        const base = previewUrl.split('?')[0];
-                        setPreviewIframeSrc(`${base}?t=${Date.now()}`);
-                      }}
-                      style={{ background:'none', border:'none', color:'#4B5563', cursor:'pointer', padding:'0 0 0 8px' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span>
-                    </button>
-                  </div>
-                  <iframe 
-                    id="preview-iframe"
-                    src={previewIframeSrc}
-                    style={{ flex: 1, border: 'none', width: '100%' }}
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                    title="Live Preview"
-                  />
-                </div>
-              )}
+
 
             </div>
 
