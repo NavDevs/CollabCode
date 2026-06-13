@@ -56,17 +56,27 @@ export default function GithubPanel({ roomId, onImportComplete }) {
   };
 
   const handleConnect = async () => {
-    const baseUrl = import.meta.env.VITE_API_URL || '/api';
-    const apiOrigin = baseUrl.replace('/api', '');
-    // Get current Clerk token to pass as query param (full-page redirect can't send Bearer header)
     try {
+      // Primary: call auth-url with Bearer token via Axios interceptor
       const { data } = await api.get('/github/auth-url');
       window.location.href = data.url;
-    } catch {
-      // Fallback: redirect directly with token from api interceptor
-      const token = api.defaults.headers?.common?.['Authorization']?.replace('Bearer ', '') || '';
-      const authUrl = `${apiOrigin}/api/github/auth?token=${token}`;
-      window.location.href = authUrl;
+    } catch (err) {
+      // Fallback: get Clerk token directly and pass in query param
+      let token = '';
+      try {
+        if (window.Clerk && window.Clerk.session) {
+          token = await window.Clerk.session.getToken();
+        }
+      } catch (e) {
+        console.error('Failed to get Clerk token:', e);
+      }
+      if (!token) {
+        toast.error('Please sign in again to connect GitHub.');
+        return;
+      }
+      const baseUrl = import.meta.env.VITE_API_URL || '/api';
+      const apiOrigin = baseUrl.replace('/api', '');
+      window.location.href = `${apiOrigin}/api/github/auth?token=${token}`;
     }
   };
 
