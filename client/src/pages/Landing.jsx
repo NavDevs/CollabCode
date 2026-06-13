@@ -40,13 +40,13 @@ function FadeSection({ children, delay = 0 }) {
 
 /* ─── Animated typing demo ─────────────────────────────────── */
 const DEMO_LINES = [
-  { code: 'const collab = new CollabSession();',  color: '#E5E5E5' },
-  { code: 'collab.invite(["alice", "bob"]);',      color: '#D1D5DB' },
-  { code: 'collab.onEdit((user, change) => {',     color: '#E5E5E5' },
-  { code: '  sync.broadcast(change);',             color: '#9CA3AF' },
-  { code: '  terminal.stream(output);',            color: '#F3F4F6' },
-  { code: '});',                                   color: '#E5E5E5' },
-  { code: '// Everyone sees this. Live. ✨',        color: '#6B7280' },
+  { code: 'const room = await CollabCode.create();',  color: '#E5E5E5' },
+  { code: 'room.invite(["alice", "bob"]);',            color: '#D1D5DB' },
+  { code: 'room.onEdit((user, change) => {',           color: '#E5E5E5' },
+  { code: '  crdt.sync(change);  // Yjs CRDT',         color: '#9CA3AF' },
+  { code: '  terminal.run("npm start");',              color: '#F3F4F6' },
+  { code: '});',                                       color: '#E5E5E5' },
+  { code: '// Everyone sees this. Live. ✨',            color: '#6B7280' },
 ];
 
 function TypedCode() {
@@ -185,8 +185,8 @@ export default function Landing() {
 
         {/* Badge */}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 999, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)', fontSize: 12, fontWeight: 600, color: '#E5E5E5', letterSpacing: '.04em' }}>
-          <span className="anim-dot inline-block w-1.5 h-1.5 rounded-full" style={{ width: 7, height: 7, borderRadius: '50%', background: '#FFFFFF', display: 'inline-block', flexShrink: 0 }} />
-          NOW IN BETA — REAL-TIME COLLABORATION
+          <span className="anim-dot inline-block w-1.5 h-1.5 rounded-full" style={{ width: 7, height: 7, borderRadius: '50%', background: '#22C55E', display: 'inline-block', flexShrink: 0 }} />
+          LIVE — REAL-TIME COLLABORATIVE CODE EDITOR
         </div>
 
         {/* Headline */}
@@ -199,7 +199,7 @@ export default function Landing() {
         </h1>
 
         <p style={{ fontSize: 18, color: '#9CA3AF', maxWidth: 560, lineHeight: 1.7, position: 'relative', zIndex: 1 }}>
-          Build full-stack applications together in real-time — with a VS Code-style terminal, 11 languages, live preview, team chat, and GitHub integration. All from your browser.
+          A full-stack collaborative IDE in your browser — real-time editing with Yjs CRDTs, integrated terminal, 22 languages, GitHub sync, live preview, and team chat. Built by NavDevs.
         </p>
 
         {/* CTA buttons */}
@@ -345,7 +345,7 @@ export default function Landing() {
         <div style={{ display: 'flex', justifyContent: 'center', gap: 0, flexWrap: 'wrap', borderRadius: 20, background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.08)', padding: '32px 0' }}>
           {[
             { value: '< 50ms', label: 'Sync latency' },
-            { value: '11', label: 'Languages supported' },
+            { value: '22', label: 'Languages supported' },
             { value: 'Live',   label: 'Terminal + preview' },
             { value: '∞',      label: 'Collaborators per room' },
           ].map((s, i) => (
@@ -370,12 +370,12 @@ export default function Landing() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
           {[
-            { icon: 'electric_bolt',  accent: '#F3F4F6', title: 'Real-time sync',        desc: 'Y.js powered CRDT sync keeps every keystroke in sync for all collaborators with sub-50ms latency.' },
-            { icon: 'play_circle',    accent: '#D1D5DB', title: '11 language execution',  desc: 'Run JS, TS, Python, C++, Java, Go, Rust, Ruby, PHP, Bash — with live preview for full-stack web servers.' },
-            { icon: 'terminal',       accent: '#9CA3AF', title: 'VS Code terminal',      desc: 'Full Linux shell with tabs, drag-to-resize, file sync, npm install, and auto port detection for live preview.' },
-            { icon: 'forum',          accent: '#E5E5E5', title: 'Team chat & presence',  desc: 'Built-in chat with avatars, typing indicators, member list, and real-time cursor tracking.' },
-            { icon: 'share',          accent: '#F9FAFB', title: 'Instant room sharing',  desc: 'One click to copy the invite link. Share with your team and they can join immediately.' },
-            { icon: 'save',           accent: '#D1D5DB', title: 'Auto-save everywhere',  desc: 'Code auto-saves to database every 1.5s. Switch files instantly, refresh the page — nothing is ever lost.' },
+            { icon: 'electric_bolt',  accent: '#F3F4F6', title: 'Real-time CRDT sync',     desc: 'Yjs-powered conflict-free sync keeps every keystroke in perfect harmony across all collaborators with sub-50ms latency.' },
+            { icon: 'play_circle',    accent: '#D1D5DB', title: '22 language execution',    desc: 'Run JavaScript, TypeScript, Python, C++, Java, Go, Rust, Ruby, PHP, Bash, and more — with live preview for web apps.' },
+            { icon: 'terminal',       accent: '#9CA3AF', title: 'Integrated terminal',     desc: 'Full Linux shell with tabs, drag-to-resize, npm/pip support, and auto port detection for live preview of web servers.' },
+            { icon: 'forum',          accent: '#E5E5E5', title: 'Team chat & presence',    desc: 'Persistent chat history, WhatsApp-style join/leave notifications, typing indicators, and live cursor tracking.' },
+            { icon: 'cloud_sync',     accent: '#F9FAFB', title: 'GitHub sync',             desc: 'Import repos from GitHub, push changes back, and collaborate with your team — any member can connect their own GitHub.' },
+            { icon: 'save',           accent: '#D1D5DB', title: 'Auto-save & hot-reload',  desc: 'Code auto-saves to the cloud every 1.5s. File changes broadcast to all members instantly — zero page refreshes needed.' },
           ].map((f, i) => (
             <FeatureCard key={i} {...f} />
           ))}
@@ -443,7 +443,7 @@ export default function Landing() {
           <span style={{ fontSize: 14, fontWeight: 700, background: 'linear-gradient(135deg,#FFFFFF,#9CA3AF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>CollabCode</span>
         </div>
         <p style={{ fontSize: 12, color: '#6B7280', fontFamily: 'JetBrains Mono, monospace' }}>
-          Built with ❤️ by NavDevs · v2.0
+          Built with ❤️ by NavDevs · © {new Date().getFullYear()}
         </p>
         <div style={{ display: 'flex', gap: 16 }}>
           <a href="https://github.com/NavDevs/CollabCode" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#9CA3AF', cursor: 'pointer', transition: 'color .15s', textDecoration: 'none' }}

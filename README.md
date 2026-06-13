@@ -12,7 +12,7 @@
 
 ---
 
-**CollabCode** is a full-featured, browser-based collaborative code editor — like **VS Code in the cloud** — where multiple developers can build full-stack applications together in real time. It features a Monaco code editor, an integrated VS Code-style Linux terminal, real-time Yjs CRDT collaboration, GitHub integration, team chat with typing indicators, and multi-language code execution with live preview.
+**CollabCode** is a full-featured, browser-based collaborative code editor — like **VS Code meets Google Docs** — where multiple developers can build full-stack applications together in real time. It features a Monaco code editor with Yjs CRDT collaboration, an integrated Linux terminal, GitHub import/push, 22 programming languages with live preview, persistent team chat with WhatsApp-style notifications, and real-time presence with live cursors.
 
 </div>
 
@@ -31,19 +31,19 @@
 | Feature | Description |
 |---|---|
 | 🖥️ **Monaco Editor** | VS Code's editor engine with syntax highlighting, IntelliSense, and multi-language support |
-| 👥 **Real-Time Collaboration** | Multiple users edit the same file simultaneously with conflict-free merging (Yjs CRDT) |
+| 👥 **Real-Time Collaboration** | Multiple users edit simultaneously with conflict-free merging (Yjs CRDT, <50ms latency) |
 | 📁 **Multi-File Workspace** | Create unlimited files — JS, TS, Python, HTML, CSS, Bash — all in one room |
-| ▶️ **Code Execution** | Run JavaScript, Python, TypeScript, C++, Java, Go, Rust, Ruby, PHP, and Bash |
-| 🌐 **Live Preview** | Start a web server (`node server.js`) and preview it via built-in proxy — full-stack apps work! |
-| 🖥️ **VS Code Terminal** | Full Linux shell with tabs, drag-to-resize, sync button, `npm install`, `node`, `python3`, `git` |
-| 🔗 **GitHub Integration** | Connect GitHub, import repos, and push entire workspaces as commits (OAuth2) |
-| 💬 **Team Chat** | Built-in chat panel with avatars, typing indicators, date separators, and member list |
-| 🔐 **Authentication** | Secure sign-in with Google via Clerk |
-| 🎨 **VS Code Dark Theme** | Premium dark UI with glassmorphism, micro-animations, and gradient accents |
-| 🔔 **Notifications** | Real-time notifications when collaborators join, leave, or run code |
-| 📊 **Presence Indicators** | See who's online with colored avatars and live cursor positions |
-| 💾 **Auto-Save** | Code auto-saves to database every 1.5 seconds — never lose work on page refresh |
-| 🔄 **File Sync** | Bi-directional sync between editor and terminal filesystem |
+| ▶️ **Code Execution** | Run 22 languages including JavaScript, Python, C++, Java, Go, Rust, Ruby, PHP, and Bash |
+| 🌐 **Live Preview** | Start a web server and preview it via built-in proxy — full-stack apps work in-browser! |
+| 🖥️ **Integrated Terminal** | Full Linux shell with tabs, drag-to-resize, npm/pip, and auto port detection for live preview |
+| 🔗 **GitHub Sync** | Any room member can connect GitHub, import repos, and push workspaces (not just the owner) |
+| 💬 **Persistent Chat** | Permanent chat history with WhatsApp-style join/leave notifications and typing indicators |
+| 🔐 **Clerk Authentication** | Secure sign-in with Google OAuth via Clerk |
+| 🔄 **Hot-Reload Everything** | File tree, user presence, chat, and room title update for all members instantly — zero refreshes |
+| 📊 **Live Cursors & Presence** | See who's online with colored avatars and real-time cursor positions in the editor |
+| 💾 **Auto-Save** | Code auto-saves to MongoDB every 1.5 seconds — never lose work |
+| 🚪 **Room Management** | Create, join (with optional password), leave rooms with system notifications to all members |
+| 🎨 **Theming & Settings** | Dark theme with user-customizable settings, font size, tab size, and editor preferences |
 
 ---
 
@@ -786,12 +786,14 @@ GITHUB_REDIRECT_URI=https://collabcode-ihw7.onrender.com/api/github/callback
 
 - **Clerk Authentication** — Industry-standard auth with Google OAuth & JWT tokens
 - **Helmet** — Security headers (XSS, CSRF, clickjacking protection)
-- **Rate Limiting** — 1000 requests/minute per IP
-- **Input Validation** — Zod schemas on all API inputs
-- **CORS** — Restricted to allowed origins
+- **Rate Limiting** — Request throttling per IP to prevent abuse
+- **Input Validation** — Zod schemas on API inputs
+- **CORS** — Restricted to allowed origins only
 - **Sandboxed Execution** — Code runs in temp directories with 120s timeout
-- **Proxy Isolation** — Security headers stripped from proxy responses
-- **Password Hashing** — bcryptjs with salt rounds
+- **Token Protection** — GitHub access tokens and password hashes are stripped from all API responses
+- **Body Size Limit** — JSON payload capped at 5MB to prevent DoS
+- **Password Hashing** — bcryptjs with salt rounds for room passwords
+- **Webhook Verification** — Timing-safe HMAC-SHA256 comparison for GitHub webhooks
 
 ---
 
@@ -812,5 +814,7 @@ This project is built as a **College Project** for educational purposes.
 ### ⭐ Star this repo if you found it useful!
 
 **[🌐 Try CollabCode Live](https://collabcode-ihw7.onrender.com)**
+
+Built with ❤️ by **NavDevs**
 
 </div>
