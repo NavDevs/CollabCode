@@ -545,36 +545,38 @@ export default function EditorPage() {
         <main style={{ display:'flex',flex:1,overflow:'hidden',height:'100%',minWidth:0 }}>
 
           {showExplorer && (
-              <aside style={{ width: explorerWidth, minWidth: 160, maxWidth: 500, flexShrink:0, display:'flex', flexDirection:'column', background:'rgba(5,5,12,.98)', borderRight:'none', position:'relative' }}>
-                {activeTab === 'explorer' && (
-                  <FileTree
-                    roomId={roomId}
-                    isOwner={user?._id === room?.ownerId}
-                    activePath={activePath}
-                    setActivePath={setActivePath}
-                    openPaths={openPaths}
-                    setOpenPaths={setOpenPaths}
-                    refreshKey={fileTreeRefresh}
-                  />
-                )}
-                {activeTab === 'github' && (
-                  <GithubPanel 
-                    roomId={roomId} 
-                    onImportComplete={() => setFileTreeRefresh(r => r + 1)} 
-                  />
-                )}
-                {/* Right-edge drag handle */}
+              <div style={{ width: explorerWidth, minWidth: 160, maxWidth: 500, flexShrink:0, position:'relative', display:'flex' }}>
+                <aside style={{ flex:1, display:'flex', flexDirection:'column', background:'rgba(5,5,12,.98)', overflow:'hidden' }}>
+                  {activeTab === 'explorer' && (
+                    <FileTree
+                      roomId={roomId}
+                      isOwner={user?._id === room?.ownerId}
+                      activePath={activePath}
+                      setActivePath={setActivePath}
+                      openPaths={openPaths}
+                      setOpenPaths={setOpenPaths}
+                      refreshKey={fileTreeRefresh}
+                    />
+                  )}
+                  {activeTab === 'github' && (
+                    <GithubPanel 
+                      roomId={roomId} 
+                      onImportComplete={() => setFileTreeRefresh(r => r + 1)} 
+                    />
+                  )}
+                </aside>
+                {/* Drag handle — sits on the right edge of the wrapper, on top of everything */}
                 <div
                   onMouseDown={e => startDrag(e, (dx) => setExplorerWidth(w => Math.max(160, Math.min(500, w + dx))))}
                   style={{
-                    position:'absolute', top:0, bottom:0, right:0, width:6,
-                    cursor:'col-resize', zIndex:30,
+                    position:'absolute', top:0, bottom:0, right:-3, width:6,
+                    cursor:'col-resize', zIndex:50,
                     background:'transparent',
                   }}
                   onMouseEnter={e => e.currentTarget.style.background='#007ACC'}
                   onMouseLeave={e => e.currentTarget.style.background='transparent'}
                 />
-              </aside>
+              </div>
           )}
 
           {/* ── Editor + Terminal column ── */}

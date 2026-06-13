@@ -424,7 +424,7 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
 
   return (
     <div 
-      style={{ width: 240, background: '#0A0A0A', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', height: '100%' }}
+      style={{ background: '#0A0A0A', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}
       onClick={() => { if (contextMenu) setContextMenu(null); }}
     >
       <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
