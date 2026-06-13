@@ -290,7 +290,7 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
               </span>
             )}
 
-            {isOwner && !isRenaming && (
+            {!isRenaming && (
               <div style={{ display: 'flex', gap: 4, opacity: isActive ? 1 : 0.4 }} onClick={e => e.stopPropagation()}>
                 <button onClick={() => { setRenaming(child.path); setRenameValue(child.path); }} style={{ background:'none', border:'none', color:'#9CA3AF', cursor:'pointer', padding:0 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
@@ -314,7 +314,7 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
     <div style={{ width: 240, background: '#0A0A0A', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', color: '#9CA3AF', textTransform: 'uppercase' }}>Explorer</span>
-        {isOwner && (
+        {(
           <button onClick={() => setCreating(true)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 0, display: 'flex' }} title="New File">
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>note_add</span>
           </button>

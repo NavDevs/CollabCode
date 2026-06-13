@@ -56,8 +56,9 @@ export default function GithubPanel({ roomId, onImportComplete }) {
   };
 
   const handleConnect = () => {
-    const token = localStorage.getItem('collabcode_token');
-    const authUrl = `http://localhost:5000/api/github/auth?token=${token}`;
+    const baseUrl = import.meta.env.VITE_API_URL || '/api';
+    const apiOrigin = baseUrl.replace('/api', '');
+    const authUrl = `${apiOrigin}/api/github/auth`;
     window.location.href = authUrl;
   };
 
