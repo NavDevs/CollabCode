@@ -250,11 +250,48 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
     }
   }
 
+  // Port detection for live preview
+  const PORT_REGEX_EXEC = /(?:localhost|127\.0\.0\.1):(\d{4,5})/gi;
+  const PORT_REGEX_EXEC2 = /(?:port|PORT)\s+(\d{4,5})/g;
+  const detectedPorts = new Set();
+
+  const detectAndEmitPort = (text) => {
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || '';
+    let match;
+    PORT_REGEX_EXEC.lastIndex = 0;
+    PORT_REGEX_EXEC2.lastIndex = 0;
+    
+    while ((match = PORT_REGEX_EXEC.exec(text)) !== null) {
+      const port = match[1];
+      if (!detectedPorts.has(port)) {
+        detectedPorts.add(port);
+        const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
+        emit('stdout', `\n🌐 Live Preview: ${proxyUrl}\n`);
+      }
+    }
+    while ((match = PORT_REGEX_EXEC2.exec(text)) !== null) {
+      const port = match[1];
+      if (!detectedPorts.has(port)) {
+        detectedPorts.add(port);
+        const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
+        emit('stdout', `\n🌐 Live Preview: ${proxyUrl}\n`);
+      }
+    }
+  };
+
   // Stream stdout
-  child.stdout.on('data', chunk => emit('stdout', chunk.toString()));
+  child.stdout.on('data', chunk => {
+    const text = chunk.toString();
+    emit('stdout', text);
+    detectAndEmitPort(text);
+  });
 
   // Stream stderr
-  child.stderr.on('data', chunk => emit('stderr', chunk.toString()));
+  child.stderr.on('data', chunk => {
+    const text = chunk.toString();
+    emit('stderr', text);
+    detectAndEmitPort(text);
+  });
 
   // Hard timeout kill
   const killer = setTimeout(() => {
