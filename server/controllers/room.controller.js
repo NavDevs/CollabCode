@@ -178,7 +178,16 @@ const updateRoomSettings = async (req, res) => {
 const getRoomMessages = async (req, res) => {
   try {
     const { roomId } = req.params;
-    const messages = await Message.find({ roomId }).sort({ timestamp: 1 }).limit(200);
+    // Optional pagination: ?before=<timestamp> to load older messages
+    const { before } = req.query;
+    
+    const query = { roomId };
+    if (before) {
+      query.timestamp = { $lt: new Date(parseInt(before)) };
+    }
+
+    // Load ALL messages (no limit) sorted oldest → newest
+    const messages = await Message.find(query).sort({ timestamp: 1 });
     return res.status(200).json({ messages });
   } catch (error) {
     console.error('Get room messages error:', error.message);

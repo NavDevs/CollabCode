@@ -8,6 +8,7 @@ const { registerCursorHandler } = require('./cursor.handler');
 const { registerExecuteHandler } = require('./execute.handler');
 const { registerTerminalHandler } = require('./terminal.handler');
 const yjsService = require('../services/yjs.service');
+const Message = require('../models/Message');
 
 const setupSocket = (io) => {
 
@@ -72,14 +73,25 @@ const setupSocket = (io) => {
 
             if (!stillPresent) {
               // Emit system chat message
+              const dcMsg = `${socket.user.username} disconnected`;
               io.in(roomId).emit('chat-system', {
                 type: 'leave',
                 username: socket.user.username,
                 avatarColor: socket.user.avatarColor,
                 userId: socket.user._id.toString(),
                 timestamp: Date.now(),
-                message: `${socket.user.username} disconnected`,
+                message: dcMsg,
               });
+              // Persist to DB
+              Message.create({
+                roomId,
+                userId: socket.user._id,
+                username: socket.user.username,
+                avatarColor: socket.user.avatarColor,
+                message: dcMsg,
+                type: 'system',
+                timestamp: new Date(),
+              }).catch(err => console.error('Failed to save disconnect msg:', err.message));
 
               // Broadcast user-left to the room
               io.in(roomId).emit('user-left', {

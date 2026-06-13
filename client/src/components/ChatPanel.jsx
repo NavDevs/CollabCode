@@ -39,7 +39,7 @@ export default function ChatPanel({ roomId, socket, user, users = [], onLeaveRoo
           avatarColor: m.avatarColor,
           message: m.message,
           timestamp: new Date(m.timestamp).getTime(),
-          type: 'message',
+          type: m.type || 'message',
         })));
       })
       .catch(() => {})

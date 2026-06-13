@@ -1,6 +1,24 @@
 // In-memory map: roomId -> Map<socketId, { userId, username, avatarColor }>
 const connectedUsers = new Map();
 const { notify, notifyRoom } = require('../services/notification.service');
+const Message = require('../models/Message');
+
+// Helper to save system messages to DB for permanent history
+const saveSystemMessage = async (roomId, username, avatarColor, userId, msg) => {
+  try {
+    await Message.create({
+      roomId,
+      userId,
+      username,
+      avatarColor,
+      message: msg,
+      type: 'system',
+      timestamp: new Date(),
+    });
+  } catch (err) {
+    console.error('Failed to save system message:', err.message);
+  }
+};
 
 const registerRoomHandler = (io, socket) => {
   socket.on('join-room', async (roomId) => {
@@ -42,14 +60,17 @@ const registerRoomHandler = (io, socket) => {
         });
 
         // Emit system chat message for the join
+        const joinMsg = `${socket.user.username} joined the room`;
         io.in(roomId).emit('chat-system', {
           type: 'join',
           username: socket.user.username,
           avatarColor: socket.user.avatarColor,
           userId: socket.user._id.toString(),
           timestamp: Date.now(),
-          message: `${socket.user.username} joined the room`,
+          message: joinMsg,
         });
+        // Persist to DB
+        saveSystemMessage(roomId, socket.user.username, socket.user.avatarColor, socket.user._id, joinMsg);
       }
 
       // Send the full list of connected users to ALL clients in the room
@@ -102,14 +123,17 @@ const registerRoomHandler = (io, socket) => {
 
         if (!stillPresent) {
           // Emit system chat message for the leave
+          const leaveMsg = `${socket.user.username} left the room`;
           io.in(roomId).emit('chat-system', {
             type: 'leave',
             username: socket.user.username,
             avatarColor: socket.user.avatarColor,
             userId: socket.user._id.toString(),
             timestamp: Date.now(),
-            message: `${socket.user.username} left the room`,
+            message: leaveMsg,
           });
+          // Persist to DB
+          saveSystemMessage(roomId, socket.user.username, socket.user.avatarColor, socket.user._id, leaveMsg);
 
           // Broadcast user-left
           io.in(roomId).emit('user-left', {
