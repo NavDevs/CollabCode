@@ -1,6 +1,6 @@
 // In-memory map: roomId -> Map<socketId, { userId, username, avatarColor }>
 const connectedUsers = new Map();
-const { notifyRoom } = require('../services/notification.service');
+const { notify, notifyRoom } = require('../services/notification.service');
 
 const registerRoomHandler = (io, socket) => {
   socket.on('join-room', async (roomId) => {
@@ -37,6 +37,15 @@ const registerRoomHandler = (io, socket) => {
       const usersList = Array.from(roomUsers.values());
       socket.emit('room-users', usersList);
 
+      // Notify the joiner themselves
+      notify(io, {
+        userId: socket.user._id.toString(),
+        type: 'system',
+        title: `Joined room`,
+        message: `You joined room ${roomId}.`,
+        roomId,
+      });
+
       // Notify other participants
       notifyRoom(io, roomUsers, socket.user._id.toString(), {
         type: 'join',
@@ -49,7 +58,7 @@ const registerRoomHandler = (io, socket) => {
     }
   });
 
-  socket.on('leave-room', (roomId) => {
+  socket.on('leave-room', async (roomId) => {
     try {
       socket.leave(roomId);
 
@@ -57,6 +66,14 @@ const registerRoomHandler = (io, socket) => {
       if (connectedUsers.has(roomId)) {
         const roomUsers = connectedUsers.get(roomId);
         roomUsers.delete(socket.id);
+
+        // Notify others about leaving
+        notifyRoom(io, roomUsers, socket.user._id.toString(), {
+          type: 'leave',
+          title: `${socket.user.username} left`,
+          message: `${socket.user.username} left the room.`,
+          roomId,
+        });
 
         // Clean up empty rooms
         if (roomUsers.size === 0) {

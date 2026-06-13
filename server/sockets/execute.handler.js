@@ -1,6 +1,6 @@
 const { executeCode } = require('../controllers/execute.controller');
 const { connectedUsers } = require('./room.handler');
-const { notifyRoom } = require('../services/notification.service');
+const { notify, notifyRoom } = require('../services/notification.service');
 
 function registerExecuteHandler(io, socket) {
   socket.on('code-execute', async ({ roomId, path, language }) => {
@@ -11,6 +11,15 @@ function registerExecuteHandler(io, socket) {
       socket.emit('exec-error', { message: 'You must join the room first.' });
       return;
     }
+
+    // Notify the runner themselves
+    notify(io, {
+      userId: socket.user._id.toString(),
+      type: 'execute',
+      title: `Running ${path}`,
+      message: `You started executing ${path}.`,
+      roomId,
+    });
 
     // Notify other participants that code is being executed
     if (connectedUsers.has(roomId)) {
