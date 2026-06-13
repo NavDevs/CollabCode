@@ -31,10 +31,10 @@ export default function NotificationDropdown() {
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef(null);
 
-  // Load initial notifications
+  // Load notifications on mount and when socket connects
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [connected]);
 
   const loadNotifications = async () => {
     try {
@@ -42,7 +42,7 @@ export default function NotificationDropdown() {
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
     } catch (err) {
-      console.error('Failed to load notifications');
+      // Silently fail - user may not be authenticated yet
     }
   };
 
