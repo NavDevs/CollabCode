@@ -96,8 +96,8 @@ export default function TopNav({ subtitle, rightContent, showNav = true }) {
             );
           })}
 
-          {/* Back to Editor — shows when not on editor page and has a saved room */}
-          {showNav && !location.pathname.startsWith('/editor') && (() => {
+          {/* Back to Editor — only shows on profile/settings pages when a room session exists */}
+          {showNav && (location.pathname.startsWith('/profile') || location.pathname.startsWith('/settings')) && (() => {
             try {
               const saved = JSON.parse(localStorage.getItem('cc_lastRoom'));
               if (saved?.roomId) return (
