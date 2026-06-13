@@ -188,6 +188,10 @@ const io = new Server(server, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
+  // Keep connections alive even when user is idle
+  pingInterval: 60000,   // Send ping every 60s (default 25s)
+  pingTimeout: 120000,   // Wait 120s for pong before disconnecting (default 20s)
+  connectTimeout: 30000, // 30s to establish initial connection
 });
 
 // Initialize socket handlers
