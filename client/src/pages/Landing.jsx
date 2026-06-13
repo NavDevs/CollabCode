@@ -154,7 +154,7 @@ export default function Landing() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
-            onClick={() => navigate('/register')}
+            onClick={() => navigate('/login')}
             style={{ padding: '8px 18px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,255,255,.1)', color: '#D1D5DB', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all .15s' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.3)'; e.currentTarget.style.color = '#FFFFFF'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.1)'; e.currentTarget.style.color = '#D1D5DB'; }}
@@ -199,7 +199,7 @@ export default function Landing() {
         </h1>
 
         <p style={{ fontSize: 18, color: '#9CA3AF', maxWidth: 560, lineHeight: 1.7, position: 'relative', zIndex: 1 }}>
-          Build full-stack applications together in real-time — JavaScript, TypeScript, Python, HTML/CSS and more. Code, execute, preview, and deploy from a single collaborative workspace.
+          Build full-stack applications together in real-time — with a VS Code-style terminal, 11 languages, live preview, team chat, and GitHub integration. All from your browser.
         </p>
 
         {/* CTA buttons */}
@@ -329,7 +329,7 @@ export default function Landing() {
 
           {/* Status bar */}
           <div style={{ height: 22, background: 'linear-gradient(90deg,#111827,#374151)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', fontSize: 10, color: 'rgba(255,255,255,.8)', fontFamily: 'JetBrains Mono, monospace' }}>
-            <span>⎇ main  CollabCode v1.0.4</span>
+            <span>⎇ main  CollabCode v2.0</span>
             <div style={{ display: 'flex', gap: 2 }}>
               <span className="anim-dot inline-block" style={{ width: 6, height: 6, borderRadius: '50%', background: '#D1D5DB', display: 'inline-block', marginRight: 5 }} />
               3 users connected
@@ -345,8 +345,8 @@ export default function Landing() {
         <div style={{ display: 'flex', justifyContent: 'center', gap: 0, flexWrap: 'wrap', borderRadius: 20, background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.08)', padding: '32px 0' }}>
           {[
             { value: '< 50ms', label: 'Sync latency' },
-            { value: 'Full Stack', label: 'JS · TS · Python · HTML/CSS' },
-            { value: 'Live',   label: 'Code execution & preview' },
+            { value: '11', label: 'Languages supported' },
+            { value: 'Live',   label: 'Terminal + preview' },
             { value: '∞',      label: 'Collaborators per room' },
           ].map((s, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
@@ -371,11 +371,11 @@ export default function Landing() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
           {[
             { icon: 'electric_bolt',  accent: '#F3F4F6', title: 'Real-time sync',        desc: 'Y.js powered CRDT sync keeps every keystroke in sync for all collaborators with sub-50ms latency.' },
-            { icon: 'play_circle',    accent: '#D1D5DB', title: 'Full-stack execution',  desc: 'Run JavaScript, TypeScript, Python, and Bash instantly. Build full-stack apps with live preview for web servers.' },
-            { icon: 'code',           accent: '#9CA3AF', title: 'Complete web stack',    desc: 'JavaScript, TypeScript, Python, HTML, CSS — everything you need to build modern full-stack applications together.' },
-            { icon: 'group',          accent: '#E5E5E5', title: 'Presence awareness',    desc: 'See exactly who\'s in the room, where their cursor is, and who triggered the last run.' },
+            { icon: 'play_circle',    accent: '#D1D5DB', title: '11 language execution',  desc: 'Run JS, TS, Python, C++, Java, Go, Rust, Ruby, PHP, Bash — with live preview for full-stack web servers.' },
+            { icon: 'terminal',       accent: '#9CA3AF', title: 'VS Code terminal',      desc: 'Full Linux shell with tabs, drag-to-resize, file sync, npm install, and auto port detection for live preview.' },
+            { icon: 'forum',          accent: '#E5E5E5', title: 'Team chat & presence',  desc: 'Built-in chat with avatars, typing indicators, member list, and real-time cursor tracking.' },
             { icon: 'share',          accent: '#F9FAFB', title: 'Instant room sharing',  desc: 'One click to copy the invite link. Share with your team and they can join immediately.' },
-            { icon: 'terminal',       accent: '#D1D5DB', title: 'Built-in terminal',     desc: 'Full shell access with live preview proxy. Start a Node.js server and see it running — all from the browser.' },
+            { icon: 'save',           accent: '#D1D5DB', title: 'Auto-save everywhere',  desc: 'Code auto-saves to database every 1.5s. Switch files instantly, refresh the page — nothing is ever lost.' },
           ].map((f, i) => (
             <FeatureCard key={i} {...f} />
           ))}
@@ -443,16 +443,14 @@ export default function Landing() {
           <span style={{ fontSize: 14, fontWeight: 700, background: 'linear-gradient(135deg,#FFFFFF,#9CA3AF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>CollabCode</span>
         </div>
         <p style={{ fontSize: 12, color: '#6B7280', fontFamily: 'JetBrains Mono, monospace' }}>
-          Built with ❤️ for real-time collaboration · v1.0.4
+          Built with ❤️ by NavDevs · v2.0
         </p>
         <div style={{ display: 'flex', gap: 16 }}>
-          {['Privacy', 'Terms', 'GitHub'].map(l => (
-            <span key={l} style={{ fontSize: 13, color: '#9CA3AF', cursor: 'pointer', transition: 'color .15s' }}
-              onMouseEnter={e => e.currentTarget.style.color = '#FFFFFF'}
-              onMouseLeave={e => e.currentTarget.style.color = '#9CA3AF'}>
-              {l}
-            </span>
-          ))}
+          <a href="https://github.com/NavDevs/CollabCode" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#9CA3AF', cursor: 'pointer', transition: 'color .15s', textDecoration: 'none' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#FFFFFF'}
+            onMouseLeave={e => e.currentTarget.style.color = '#9CA3AF'}
+          >GitHub</a>
+          <span style={{ fontSize: 13, color: '#9CA3AF' }}>NavDevs</span>
         </div>
       </footer>
     </div>
