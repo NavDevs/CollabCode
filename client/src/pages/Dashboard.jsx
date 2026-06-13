@@ -50,7 +50,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [modal,   setModal]   = useState(false);
   const [title,   setTitle]   = useState('');
-  const [lang,    setLang]    = useState('javascript');
+  const [desc,    setDesc]    = useState('');
   const [busy,    setBusy]    = useState(false);
   const [joinModal, setJoinModal] = useState(false);
   const [joinId,    setJoinId]    = useState('');
@@ -83,7 +83,7 @@ export default function Dashboard() {
     if (!title.trim()) return;
     setBusy(true);
     try {
-      const { data } = await api.post('/rooms', { title: title.trim(), language: lang });
+      const { data } = await api.post('/rooms', { title: title.trim(), language: 'javascript', description: desc.trim() });
       toast.success('Room created!');
       confetti({
         particleCount: 150,
@@ -277,7 +277,7 @@ export default function Dashboard() {
                   gap: 16 
                 }}>
                   {filtered.map(room => {
-                    const m = LANG[room.language] || { color:'#D1D5DB', bg:'rgba(255,255,255,.12)', label:room.language };
+                    const m = { color:'#D1D5DB', bg:'rgba(255,255,255,.12)', label:'Full Stack' };
                     return <RoomCard key={room.roomId} room={room} meta={m} viewMode={viewMode} currentUserId={user?._id} onDelete={deleteRoom} onClick={() => navigate(`/editor/${room.roomId}`)} />;
                   })}
                 </div>
@@ -390,7 +390,7 @@ export default function Dashboard() {
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:24 }}>
               <div>
                 <h2 style={{ fontSize:17,fontWeight:700,color:'#F1F5F9' }}>New Room</h2>
-                <p style={{ fontSize:13,color:'#4B5563',marginTop:2 }}>Start a collaborative session</p>
+                <p style={{ fontSize:13,color:'#4B5563',marginTop:2 }}>Create any files — JS, Python, HTML & more</p>
               </div>
               <button onClick={() => setModal(false)} style={{ width:28,height:28,borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.05)',border:'none',cursor:'pointer',color:'#6B7280' }}>
                 <span className="material-symbols-outlined" style={{ fontSize:17 }}>close</span>
@@ -404,10 +404,9 @@ export default function Dashboard() {
                   placeholder="my-awesome-project" style={INP} onFocus={fi} onBlur={bi} autoFocus/>
               </div>
               <div>
-                <label style={{ display:'block',fontSize:11,fontWeight:600,letterSpacing:'.07em',textTransform:'uppercase',color:'#4B5563',marginBottom:8 }}>Language</label>
-                <select id="modal-lang" value={lang} onChange={e=>setLang(e.target.value)} style={{ ...INP, cursor:'pointer' }}>
-                  {Object.entries(LANG).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-                </select>
+                <label style={{ display:'block',fontSize:11,fontWeight:600,letterSpacing:'.07em',textTransform:'uppercase',color:'#4B5563',marginBottom:8 }}>Description <span style={{color:'#374151',fontWeight:400}}>(optional)</span></label>
+                <input id="modal-desc" value={desc} onChange={e=>setDesc(e.target.value)}
+                  placeholder="e.g. Full-stack todo app" style={INP} onFocus={fi} onBlur={bi}/>
               </div>
               <div style={{ display:'flex', gap:10, paddingTop:4 }}>
                 <button id="modal-create" type="submit" disabled={busy||!title.trim()}
