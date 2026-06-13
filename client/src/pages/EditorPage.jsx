@@ -149,7 +149,7 @@ export default function EditorPage() {
   const [showExplorer, setShowExplorer] = useState(true);
   const [showChat, setShowChat] = useState(true);
   const [explorerWidth, setExplorerWidth] = useState(240);
-  const [chatWidth, setChatWidth] = useState(300);
+  const [chatWidth, setChatWidth] = useState(280);
 
 
 
@@ -519,7 +519,7 @@ export default function EditorPage() {
           }
         }} showChat={showChat} setShowChat={setShowChat} />
 
-        <main style={{ display:'flex',flex:1,overflow:'hidden' }}>
+        <main style={{ display:'flex',flex:1,overflow:'hidden',height:'100%',minWidth:0 }}>
 
           {/* ── Sidebar panel (Explorer or GitHub) ── */}
           {showExplorer && (
@@ -668,8 +668,8 @@ export default function EditorPage() {
           {/* Chat panel with resize */}
           {showChat && (
             <>
-              <ResizeHandle onDrag={(dx) => setChatWidth(w => Math.max(200, Math.min(500, w - dx)))} />
-              <div style={{ width: chatWidth, flexShrink: 0 }}>
+              <ResizeHandle onDrag={(dx) => setChatWidth(w => Math.max(220, Math.min(450, w - dx)))} />
+              <div style={{ width: chatWidth, flexShrink: 0, height: '100%', overflow: 'hidden' }}>
                 <ChatPanel roomId={roomId} socket={socket} user={user} users={users} />
               </div>
             </>

@@ -104,10 +104,11 @@ export default function ChatPanel({ roomId, socket, user, users = [] }) {
   return (
     <aside
       style={{
-        width: 300, flexShrink: 0,
+        width: '100%', height: '100%',
         display: 'flex', flexDirection: 'column',
         background: '#1E1E1E',
         borderLeft: '1px solid #3C3C3C',
+        overflow: 'hidden',
       }}
     >
       {/* Header */}
