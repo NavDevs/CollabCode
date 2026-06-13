@@ -199,7 +199,7 @@ export default function Landing() {
         </h1>
 
         <p style={{ fontSize: 18, color: '#9CA3AF', maxWidth: 560, lineHeight: 1.7, position: 'relative', zIndex: 1 }}>
-          A real-time collaborative code editor with live execution, team chat, and instant room sharing — built for developers who move fast together.
+          Build full-stack applications together in real-time — JavaScript, TypeScript, Python, HTML/CSS and more. Code, execute, preview, and deploy from a single collaborative workspace.
         </p>
 
         {/* CTA buttons */}
@@ -345,8 +345,8 @@ export default function Landing() {
         <div style={{ display: 'flex', justifyContent: 'center', gap: 0, flexWrap: 'wrap', borderRadius: 20, background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.08)', padding: '32px 0' }}>
           {[
             { value: '< 50ms', label: 'Sync latency' },
-            { value: '6+',     label: 'Languages supported' },
-            { value: '10s',    label: 'Execution timeout' },
+            { value: 'Full Stack', label: 'JS · TS · Python · HTML/CSS' },
+            { value: 'Live',   label: 'Code execution & preview' },
             { value: '∞',      label: 'Collaborators per room' },
           ].map((s, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
@@ -371,11 +371,11 @@ export default function Landing() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
           {[
             { icon: 'electric_bolt',  accent: '#F3F4F6', title: 'Real-time sync',        desc: 'Y.js powered CRDT sync keeps every keystroke in sync for all collaborators with sub-50ms latency.' },
-            { icon: 'play_circle',    accent: '#D1D5DB', title: 'Live code execution',   desc: 'Run JavaScript, Python, or Go directly in the browser. Output streams live to every collaborator.' },
-            { icon: 'forum',          accent: '#9CA3AF', title: 'Integrated team chat',  desc: 'No need to switch tabs. Discuss changes, share ideas, and review code — all in one place.' },
+            { icon: 'play_circle',    accent: '#D1D5DB', title: 'Full-stack execution',  desc: 'Run JavaScript, TypeScript, Python, and Bash instantly. Build full-stack apps with live preview for web servers.' },
+            { icon: 'code',           accent: '#9CA3AF', title: 'Complete web stack',    desc: 'JavaScript, TypeScript, Python, HTML, CSS — everything you need to build modern full-stack applications together.' },
             { icon: 'group',          accent: '#E5E5E5', title: 'Presence awareness',    desc: 'See exactly who\'s in the room, where their cursor is, and who triggered the last run.' },
             { icon: 'share',          accent: '#F9FAFB', title: 'Instant room sharing',  desc: 'One click to copy the invite link. Share with your team and they can join immediately.' },
-            { icon: 'lock',           accent: '#D1D5DB', title: 'Secure by default',     desc: 'JWT authentication, room isolation, and sandboxed execution keeps your code and data safe.' },
+            { icon: 'terminal',       accent: '#D1D5DB', title: 'Built-in terminal',     desc: 'Full shell access with live preview proxy. Start a Node.js server and see it running — all from the browser.' },
           ].map((f, i) => (
             <FeatureCard key={i} {...f} />
           ))}
