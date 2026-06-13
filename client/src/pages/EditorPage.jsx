@@ -365,14 +365,15 @@ export default function EditorPage() {
       {/* ══════════════════════ TOP BAR ══════════════════════ */}
       <header style={{
         height:48,flexShrink:0,zIndex:50,
-        display:'flex',alignItems:'center',justifyContent:'space-between',
-        padding:'0 12px 0 16px',gap:8,
+        display:'flex',alignItems:'center',
+        padding:'0 12px 0 16px',gap:0,
         background:'rgba(5,5,12,.98)',
         borderBottom:'1px solid rgba(255,255,255,.05)',
         backdropFilter:'blur(10px)',
+        overflow:'hidden',
       }}>
-        {/* Left */}
-        <div style={{ display:'flex',alignItems:'center',gap:10,height:'100%' }}>
+        {/* Left section */}
+        <div style={{ display:'flex',alignItems:'center',gap:10,height:'100%',flexShrink:1,minWidth:0,overflow:'hidden' }}>
           <button
             onClick={() => navigate('/dashboard')}
             style={{
@@ -406,8 +407,8 @@ export default function EditorPage() {
           </div>
         </div>
 
-        {/* Center: Run button & Preview button */}
-        <div style={{ position:'absolute',left:'50%',transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:12 }}>
+        {/* Center: Run button */}
+        <div style={{ flex:1,display:'flex',alignItems:'center',justifyContent:'center',minWidth:0,padding:'0 8px' }}>
           {!isReadOnly && (
             <button
               onClick={runCode}
@@ -437,8 +438,8 @@ export default function EditorPage() {
 
         </div>
 
-        {/* Right */}
-        <div style={{ display:'flex',alignItems:'center',gap:8 }}>
+        {/* Right section */}
+        <div style={{ display:'flex',alignItems:'center',gap:6,flexShrink:0 }}>
           {/* Presence avatars */}
           <div style={{ display:'flex',alignItems:'center' }}>
             {users.slice(0,5).map((u,i) => (
