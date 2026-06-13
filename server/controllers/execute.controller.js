@@ -3,6 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+// Track running processes per room so they can be stopped
+const runningProcesses = new Map();
+
 /* ─── Language configs ───────────────────────────────────────── */
 const LANG_CONFIG = {
   javascript: {
@@ -180,6 +183,12 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
     return;
   }
 
+  // Kill any existing execution for this room
+  if (runningProcesses.has(roomId)) {
+    try { runningProcesses.get(roomId).kill('SIGKILL'); } catch {}
+    runningProcesses.delete(roomId);
+  }
+
   // Announce run start
   io.to(roomId).emit('exec-start', { language, runner: user.username, ts: Date.now() });
 
@@ -221,7 +230,6 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
   let child;
   try {
     child = spawn(cmd, args, {
-      timeout: TIMEOUT_MS,
       cwd: fileDir,
       env: { ...process.env, NODE_ENV: 'sandbox' },
     });
@@ -231,7 +239,6 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
       const fb = cfg.fallback(entryFileAbsPath, fileDir);
       try {
         child = spawn(fb.cmd, fb.args, {
-          timeout: TIMEOUT_MS,
           cwd: fileDir,
           env: { ...process.env, NODE_ENV: 'sandbox' },
         });
@@ -252,28 +259,31 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
   // Port detection for live preview
   const PORT_REGEX_EXEC = /(?:localhost|127\.0\.0\.1):(\d{4,5})/gi;
   const PORT_REGEX_EXEC2 = /(?:port|PORT)\s+(\d{4,5})/g;
+  const LISTENING_REGEX = /listening\s+(?:on\s+)?(?:port\s+)?(\d{4,5})/gi;
   const detectedPorts = new Set();
+  let isLongRunning = false; // set true when server port detected
 
   const detectAndEmitPort = (text) => {
     const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || '';
-    let match;
-    PORT_REGEX_EXEC.lastIndex = 0;
-    PORT_REGEX_EXEC2.lastIndex = 0;
-    
-    while ((match = PORT_REGEX_EXEC.exec(text)) !== null) {
-      const port = match[1];
-      if (!detectedPorts.has(port)) {
-        detectedPorts.add(port);
-        const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
-        emit('stdout', `\n🌐 Live Preview: ${proxyUrl}\n`);
-      }
-    }
-    while ((match = PORT_REGEX_EXEC2.exec(text)) !== null) {
-      const port = match[1];
-      if (!detectedPorts.has(port)) {
-        detectedPorts.add(port);
-        const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
-        emit('stdout', `\n🌐 Live Preview: ${proxyUrl}\n`);
+    const allRegexes = [PORT_REGEX_EXEC, PORT_REGEX_EXEC2, LISTENING_REGEX];
+
+    for (const regex of allRegexes) {
+      regex.lastIndex = 0;
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        const port = match[1];
+        if (!detectedPorts.has(port)) {
+          detectedPorts.add(port);
+          const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
+          emit('stdout', `\n🌐 Live Preview: ${proxyUrl}\n`);
+
+          // This is a web server — cancel the timeout so it stays alive
+          if (!isLongRunning) {
+            isLongRunning = true;
+            clearTimeout(killer);
+            emit('stdout', `\x1b[90m[Server detected — process will stay alive. Press Ctrl+C in terminal or click Stop to end.]\x1b[0m\n`);
+          }
+        }
       }
     }
   };
@@ -292,25 +302,43 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
     detectAndEmitPort(text);
   });
 
-  // Hard timeout kill
+  // Timeout for SHORT scripts only (30s) — cancelled when server detected
   const killer = setTimeout(() => {
-    child.kill('SIGKILL');
-    emit('stderr', `\n✗ Execution timed out after ${TIMEOUT_MS / 1000}s\n`);
-  }, TIMEOUT_MS);
+    if (!isLongRunning) {
+      child.kill('SIGKILL');
+      emit('stderr', `\n✗ Script timed out after 30s (not a server). Use the terminal for long-running processes.\n`);
+    }
+  }, 30_000);
+
+  // Track this process
+  runningProcesses.set(roomId, child);
 
   child.on('close', (code, signal) => {
     clearTimeout(killer);
-    // Don't clean up — shared workspace with terminal
+    runningProcesses.delete(roomId);
     const duration = Date.now() - started;
     io.to(roomId).emit('exec-done', { exitCode: code ?? (signal ? 1 : 0), duration, language, runner: user.username });
   });
 
   child.on('error', err => {
     clearTimeout(killer);
-    // Don't clean up — shared workspace with terminal
+    runningProcesses.delete(roomId);
     emit('stderr', `✗ Runtime error: ${err.message}\n`);
     io.to(roomId).emit('exec-done', { exitCode: 1, duration: Date.now() - started, language, runner: user.username });
   });
+}
+
+// Stop a running execution for a room
+function stopExecution(io, roomId) {
+  const child = runningProcesses.get(roomId);
+  if (child) {
+    try { child.kill('SIGTERM'); } catch {}
+    // Force kill after 3s if still alive
+    setTimeout(() => {
+      try { child.kill('SIGKILL'); } catch {}
+    }, 3000);
+    io.to(roomId).emit('exec-output', { type: 'stderr', data: '\n✗ Execution stopped by user\n', ts: Date.now() });
+  }
 }
 
 /**
@@ -337,4 +365,4 @@ function cleanUpDir(dir) {
   try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
 }
 
-module.exports = { executeCode };
+module.exports = { executeCode, stopExecution, runningProcesses };

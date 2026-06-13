@@ -12,6 +12,7 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
   const socketRef  = useRef(socket);
   const [activeTab, setActiveTab] = useState('terminal');
   const [isDragging, setIsDragging] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const dragStart = useRef(null);
 
   // Keep socketRef in sync with the latest socket prop
@@ -115,6 +116,7 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
 
     // Listen for code execution output (from Run button)
     const onExecStart = ({ language, runner }) => {
+      setIsRunning(true);
       term.writeln(`\r\n\x1b[1;38;2;36;166;247m▶ Running ${language}...\x1b[0m`);
     };
 
@@ -127,6 +129,7 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
     };
 
     const onExecDone = ({ exitCode, duration }) => {
+      setIsRunning(false);
       const color = exitCode === 0 ? '38;2;35;209;139' : '38;2;241;76;76';
       const icon = exitCode === 0 ? '✓' : '✗';
       term.writeln(`\r\n\x1b[${color}m${icon} Process exited with code ${exitCode}\x1b[0m \x1b[90m(${duration}ms)\x1b[0m`);
@@ -256,6 +259,21 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
           >
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>sync</span>
           </button>
+          {isRunning && (
+            <button
+              onClick={() => {
+                if (socketRef.current && roomId) {
+                  socketRef.current.emit('exec-stop', { roomId });
+                  setIsRunning(false);
+                }
+              }}
+              style={{ height: 28, display: 'flex', alignItems: 'center', gap: 4, padding: '0 8px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', cursor: 'pointer', borderRadius: 4, fontSize: 11, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}
+              title="Stop Running Process"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>stop_circle</span>
+              Stop
+            </button>
+          )}
           <button
             onClick={() => {
               xtermRef.current?.clear();

@@ -1,4 +1,4 @@
-const { executeCode } = require('../controllers/execute.controller');
+const { executeCode, stopExecution } = require('../controllers/execute.controller');
 const { connectedUsers } = require('./room.handler');
 const { notify, notifyRoom } = require('../services/notification.service');
 
@@ -47,6 +47,12 @@ function registerExecuteHandler(io, socket) {
         runner: socket.user.username,
       });
     }
+  });
+
+  // Stop a running execution
+  socket.on('exec-stop', ({ roomId }) => {
+    if (!roomId) return;
+    stopExecution(io, roomId);
   });
 }
 
