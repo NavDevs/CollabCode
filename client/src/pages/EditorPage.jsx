@@ -150,6 +150,8 @@ export default function EditorPage() {
   const editorRef    = useRef(null);   // exposes getValue()
   const ydocRef      = useRef(null);   // local Y.Doc
   const isRemoteRef  = useRef(false);  // flag to skip re-emitting remote changes
+  const activePathRef = useRef(null);  // tracks activePath for closures
+  const isSwitchingRef = useRef(false); // blocks onChange during file switch
 
   /* ── Load room ── */
   useEffect(() => {
@@ -167,11 +169,15 @@ export default function EditorPage() {
     if (!socket || !connected || !roomId || !activePath) return;
 
     // Show cached content instantly (zero latency)
+    isSwitchingRef.current = true;
+    activePathRef.current = activePath;
     if (fileCacheRef.current[activePath] !== undefined) {
       setCode(fileCacheRef.current[activePath]);
     } else {
       setCode('');
     }
+    // Allow onChange after a tick (prevents stale closure from firing)
+    setTimeout(() => { isSwitchingRef.current = false; }, 50);
 
     // Create Yjs doc for this file
     const ydoc = new Y.Doc();
@@ -560,11 +566,17 @@ export default function EditorPage() {
                   readOnly={isReadOnly}
                   value={code}
                   onChange={val => {
+                    // GUARD: Don't process changes during file switch
+                    if (isSwitchingRef.current || isRemoteRef.current) return;
+                    
+                    const currentPath = activePathRef.current;
+                    if (!currentPath) return;
+                    
                     setCode(val || '');
-                    // Update local cache
-                    if (activePath) fileCacheRef.current[activePath] = val || '';
-                    // Broadcast change via Yjs if it's a local edit
-                    if (!isRemoteRef.current && ydocRef.current && socket && connected && activePath) {
+                    fileCacheRef.current[currentPath] = val || '';
+                    
+                    // Broadcast change via Yjs
+                    if (ydocRef.current && socket && connected) {
                       const ydoc = ydocRef.current;
                       const ytext = ydoc.getText('monaco');
                       ydoc.transact(() => {
@@ -572,14 +584,14 @@ export default function EditorPage() {
                         ytext.insert(0, val || '');
                       });
                       const update = Y.encodeStateAsUpdate(ydoc);
-                      socket.emit('yjs-update', { roomId, path: activePath, update: Array.from(update) });
+                      socket.emit('yjs-update', { roomId, path: currentPath, update: Array.from(update) });
                     }
-                    // Debounced save to DB for persistence across refreshes
-                    if (activePath && roomId) {
+                    // Debounced save to DB
+                    if (currentPath && roomId) {
                       clearTimeout(window.__saveTimer);
                       window.__saveTimer = setTimeout(() => {
                         api.put(`/workspaces/${roomId}/files/content`, {
-                          path: activePath,
+                          path: currentPath,
                           content: val || '',
                         }).catch(() => {});
                       }, 1500);
