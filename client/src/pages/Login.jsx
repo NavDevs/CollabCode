@@ -1,8 +1,16 @@
-import { SignIn } from '@clerk/clerk-react';
+import { SignIn, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { dark } from '@clerk/themes';
+import { Navigate } from 'react-router-dom';
 import BrandMark from '../components/BrandMark';
 
 export default function Login() {
+  const { isSignedIn, isLoaded } = useClerkAuth();
+  
+  // If already signed in, redirect to dashboard
+  if (isLoaded && isSignedIn) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0A0A0A] text-white">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">

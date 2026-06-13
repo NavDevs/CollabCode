@@ -16,6 +16,7 @@ export function AuthProvider({ children }) {
   const [dbUser, setDbUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [syncAttempted, setSyncAttempted] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -31,6 +32,17 @@ export function AuthProvider({ children }) {
             if (isMounted) setDbUser(data.user);
           } catch (e) {
             console.error('Failed to sync DB user', e);
+            // Still allow the app to load even if sync fails
+            // Create a fallback user from Clerk data
+            if (isMounted && clerkUser) {
+              setDbUser({
+                _id: clerkUser.id,
+                clerkId: clerkUser.id,
+                username: clerkUser.username || clerkUser.firstName || clerkUser.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'user',
+                email: clerkUser.emailAddresses?.[0]?.emailAddress || '',
+                avatarColor: '#6366F1',
+              });
+            }
           }
         } else {
           if (isMounted) {
@@ -38,15 +50,20 @@ export function AuthProvider({ children }) {
             setToken(null);
           }
         }
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setSyncAttempted(true);
+        }
       }
     }
     syncUser();
     return () => { isMounted = false; };
-  }, [isAuthLoaded, isUserLoaded, isSignedIn, clerkUser, getToken]);
+  }, [isAuthLoaded, isUserLoaded, isSignedIn, clerkUser?.id, getToken]);
 
   const logout = useCallback(async () => {
     await signOut();
+    setDbUser(null);
+    setToken(null);
   }, [signOut]);
 
   const login = () => {};
