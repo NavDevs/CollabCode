@@ -1,15 +1,18 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 
-export default function WebTerminal({ socket, roomId, height = 260 }) {
+export default function WebTerminal({ socket, roomId, height = 260, onResize }) {
   const termRef    = useRef(null);
   const xtermRef   = useRef(null);
   const fitRef     = useRef(null);
   const started    = useRef(false);
   const socketRef  = useRef(socket);
+  const [activeTab, setActiveTab] = useState('terminal');
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef(null);
 
   // Keep socketRef in sync with the latest socket prop
   useEffect(() => {
@@ -22,25 +25,39 @@ export default function WebTerminal({ socket, roomId, height = 260 }) {
 
     const term = new Terminal({
       theme: {
-        background: '#0A0A0A',
-        foreground: '#D1D5DB',
-        cursor:     '#9CA3AF',
-        black:      '#1F2937',
-        green:      '#10B981',
-        cyan:       '#06B6D4',
-        red:        '#EF4444',
-        yellow:     '#F59E0B',
-        white:      '#F9FAFB',
-        brightBlack:'#374151',
-        selectionBackground: 'rgba(255,255,255,0.15)',
+        background: '#1E1E1E',
+        foreground: '#CCCCCC',
+        cursor:     '#AEAFAD',
+        cursorAccent: '#1E1E1E',
+        black:      '#000000',
+        red:        '#CD3131',
+        green:      '#0DBC79',
+        yellow:     '#E5E510',
+        blue:       '#2472C8',
+        magenta:    '#BC3FBC',
+        cyan:       '#11A8CD',
+        white:      '#E5E5E5',
+        brightBlack:'#666666',
+        brightRed:  '#F14C4C',
+        brightGreen:'#23D18B',
+        brightYellow:'#F5F543',
+        brightBlue: '#3B8EEA',
+        brightMagenta:'#D670D6',
+        brightCyan: '#29B8DB',
+        brightWhite:'#E5E5E5',
+        selectionBackground: 'rgba(38,79,120,0.5)',
+        selectionForeground: '#FFFFFF',
       },
-      fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+      fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Menlo', 'Consolas', monospace",
       fontSize: 13,
-      lineHeight: 1.5,
+      lineHeight: 1.35,
+      letterSpacing: 0,
       cursorBlink: true,
       cursorStyle: 'block',
-      scrollback: 2000,
+      scrollback: 5000,
       allowProposedApi: true,
+      convertEol: true,
+      drawBoldTextInBrightColors: true,
     });
 
     const fit   = new FitAddon();
@@ -52,11 +69,6 @@ export default function WebTerminal({ socket, roomId, height = 260 }) {
 
     xtermRef.current = term;
     fitRef.current   = fit;
-
-    // Welcome banner
-    term.writeln('\x1b[1;37m  CollabCode Terminal  \x1b[0m');
-    term.writeln('\x1b[90m  Connected to server — Full shell access\x1b[0m');
-    term.writeln('');
 
     // Forward keystrokes to server (use ref to avoid stale closure)
     term.onData((data) => {
@@ -97,26 +109,25 @@ export default function WebTerminal({ socket, roomId, height = 260 }) {
     };
 
     const onReady = () => {
-      term.writeln('\x1b[32m✓ Terminal ready!\x1b[0m');
-      term.writeln('\x1b[90m  Try: ls, node --version, python3 --version, npm init\x1b[0m');
+      term.writeln('\x1b[38;2;35;209;139m✓ Shell ready\x1b[0m');
       term.writeln('');
     };
 
     // Listen for code execution output (from Run button)
     const onExecStart = ({ language, runner }) => {
-      term.writeln(`\r\n\x1b[1;36m▶ ${runner} is running ${language}...\x1b[0m`);
+      term.writeln(`\r\n\x1b[1;38;2;36;166;247m▶ Running ${language}...\x1b[0m`);
     };
 
     const onExecOutput = ({ type, data }) => {
       if (type === 'stdout') {
         term.write(data);
       } else if (type === 'stderr') {
-        term.write(`\x1b[31m${data}\x1b[0m`);
+        term.write(`\x1b[38;2;241;76,76m${data}\x1b[0m`);
       }
     };
 
-    const onExecDone = ({ exitCode, duration, language, runner }) => {
-      const color = exitCode === 0 ? '32' : '31';
+    const onExecDone = ({ exitCode, duration }) => {
+      const color = exitCode === 0 ? '38;2;35;209;139' : '38;2;241;76;76';
       const icon = exitCode === 0 ? '✓' : '✗';
       term.writeln(`\r\n\x1b[${color}m${icon} Process exited with code ${exitCode}\x1b[0m \x1b[90m(${duration}ms)\x1b[0m`);
     };
@@ -144,42 +155,104 @@ export default function WebTerminal({ socket, roomId, height = 260 }) {
     };
   }, [socket, roomId]);
 
+  // Drag to resize
+  const handleDragStart = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(true);
+    dragStart.current = e.clientY;
+    
+    const handleMove = (me) => {
+      if (dragStart.current !== null && onResize) {
+        const diff = dragStart.current - me.clientY;
+        dragStart.current = me.clientY;
+        onResize(diff);
+      }
+    };
+    
+    const handleUp = () => {
+      setIsDragging(false);
+      dragStart.current = null;
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+    };
+    
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleUp);
+  }, [onResize]);
+
+  const tabStyle = (active) => ({
+    padding: '0 16px',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    fontSize: 12,
+    fontWeight: active ? 500 : 400,
+    color: active ? '#CCCCCC' : '#858585',
+    background: 'none',
+    border: 'none',
+    borderBottom: active ? '1px solid #CCCCCC' : '1px solid transparent',
+    cursor: 'pointer',
+    transition: 'color .15s',
+    fontFamily: "'Inter', system-ui, sans-serif",
+  });
+
   return (
     <div style={{
       height,
-      background: '#0A0A0A',
-      borderTop: '1px solid rgba(255,255,255,0.07)',
+      background: '#1E1E1E',
+      borderTop: '1px solid #3C3C3C',
       display: 'flex',
       flexDirection: 'column',
       flexShrink: 0,
     }}>
-      {/* Terminal header */}
+      {/* VS Code-style drag handle */}
+      <div
+        onMouseDown={onResize ? handleDragStart : undefined}
+        style={{
+          height: 4,
+          cursor: onResize ? 'ns-resize' : 'default',
+          background: isDragging ? '#007ACC' : 'transparent',
+          flexShrink: 0,
+          transition: 'background .15s',
+        }}
+        onMouseEnter={e => { if (onResize) e.currentTarget.style.background = '#007ACC'; }}
+        onMouseLeave={e => { if (!isDragging) e.currentTarget.style.background = 'transparent'; }}
+      />
+
+      {/* VS Code-style tab bar */}
       <div style={{
-        height: 32,
+        height: 35,
         flexShrink: 0,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'stretch',
         justifyContent: 'space-between',
-        padding: '0 14px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        background: 'rgba(255,255,255,0.02)',
+        borderBottom: '1px solid #3C3C3C',
+        background: '#1E1E1E',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#10B981' }}>terminal</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', letterSpacing: '.06em', textTransform: 'uppercase' }}>
-            Terminal {!socket && <span style={{ color: '#F59E0B' }}>— connecting…</span>}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'stretch' }}>
+          <button style={tabStyle(activeTab === 'terminal')} onClick={() => setActiveTab('terminal')}>
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>terminal</span>
+            TERMINAL
+          </button>
+          <button style={tabStyle(activeTab === 'output')} onClick={() => setActiveTab('output')}>
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>output</span>
+            OUTPUT
+          </button>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, paddingRight: 8 }}>
           <button
             onClick={() => {
               xtermRef.current?.clear();
-              xtermRef.current?.writeln('\x1b[90m  Terminal cleared\x1b[0m');
             }}
-            style={{ background:'none', border:'none', color:'#6B7280', cursor:'pointer', fontSize: 11, padding: '2px 6px' }}
-            title="Clear terminal"
+            style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#858585', cursor: 'pointer', borderRadius: 4 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            title="Clear Terminal"
           >
-            clear
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_sweep</span>
           </button>
           <button
             onClick={() => {
@@ -187,7 +260,6 @@ export default function WebTerminal({ socket, roomId, height = 260 }) {
                 socket.emit('terminal-kill');
                 started.current = false;
                 xtermRef.current?.writeln('\r\n\x1b[90m[Session ended]\x1b[0m');
-                // Restart after a brief pause
                 setTimeout(() => {
                   if (roomId && socket) {
                     socket.emit('terminal-start', { roomId });
@@ -196,9 +268,26 @@ export default function WebTerminal({ socket, roomId, height = 260 }) {
                 }, 500);
               }
             }}
-            style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', color:'#EF4444', cursor:'pointer', fontSize: 11, padding: '2px 8px', borderRadius: 4 }}
+            style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#858585', cursor: 'pointer', borderRadius: 4 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            title="Restart Terminal"
           >
-            Restart
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span>
+          </button>
+          <button
+            onClick={() => {
+              if (socket) {
+                socket.emit('terminal-kill');
+                started.current = false;
+              }
+            }}
+            style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#858585', cursor: 'pointer', borderRadius: 4 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            title="Kill Terminal"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
           </button>
         </div>
       </div>
@@ -206,7 +295,7 @@ export default function WebTerminal({ socket, roomId, height = 260 }) {
       {/* xterm.js mount point */}
       <div
         ref={termRef}
-        style={{ flex: 1, padding: '6px 4px', overflow: 'hidden' }}
+        style={{ flex: 1, padding: '4px 0 4px 12px', overflow: 'hidden' }}
       />
     </div>
   );

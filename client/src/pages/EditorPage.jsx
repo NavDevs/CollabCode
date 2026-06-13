@@ -566,6 +566,7 @@ export default function EditorPage() {
                 socket={socket}
                 roomId={roomId}
                 height={termHeight}
+                onResize={(diff) => setTermHeight(h => Math.max(120, Math.min(600, h + diff)))}
               />
             )}
           </div>
