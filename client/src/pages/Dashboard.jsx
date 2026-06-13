@@ -16,7 +16,6 @@ const LANG = {
   css:        { color: '#F3F4F6', bg: 'rgba(255,255,255,.12)', label: 'CSS'       },
   bash:       { color: '#4ADE80', bg: 'rgba(74,222,128,.12)', label: 'Bash/Shell' },
 };
-const BARS = [32, 55, 28, 72, 48, 90, 65];
 
 function timeAgo(d) {
   const m = Math.floor((Date.now() - new Date(d)) / 60000);
@@ -295,82 +294,110 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ── Activity bento ── */}
+            {/* ── Live Dashboard Bento ── */}
             <div style={{ marginTop: 44 }}>
-              <p style={{ fontSize:11,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'#4B5563',marginBottom:16 }}>
-                Activity Snapshot
+              <p style={{ fontSize:11,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'#4B5563',marginBottom:16, display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ width:6, height:6, borderRadius:'50%', background:'#34D399', boxShadow:'0 0 8px #34D399', animation:'pulse-dot 2s ease infinite' }} />
+                Live Dashboard
               </p>
-              <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gridTemplateRows:'160px 160px', gap:16 }}>
-                {/* Chart – spans both rows */}
-                <div
-                  style={{ gridRow:'1 / 3', borderRadius:16, padding:24, border:'1px solid rgba(255,255,255,.06)',
-                    background:'rgba(255,255,255,.025)', display:'flex', flexDirection:'column', justifyContent:'space-between', position:'relative', overflow:'hidden' }}
-                >
-                  <div>
-                    <h3 style={{ fontSize:16,fontWeight:700,color:'#E5E7EB',marginBottom:4 }}>Weekly Contribution</h3>
-                    <p style={{ fontSize:13,color:'#4B5563',maxWidth:320,lineHeight:1.6 }}>
-                      {rooms.length > 0 ? `Active across ${rooms.length} session${rooms.length!==1?'s':''}. Keep the momentum.`
-                        : 'Start coding to see your activity here.'}
-                    </p>
-                  </div>
-                  <div style={{ display:'flex', gap:6, height:100, alignItems:'flex-end' }}>
-                    {BARS.map((h, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          flex:1, height:`${h}%`,
-                          borderRadius:'4px 4px 0 0',
-                          background: i===6
-                            ? 'linear-gradient(180deg,#F3F4F6 0%,#D1D5DB 100%)'
-                            : 'rgba(255,255,255,.18)',
-                          boxShadow: i===6 ? '0 0 20px rgba(255,255,255,.4)' : 'none',
-                          transition: 'filter .2s',
-                          cursor: 'pointer',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.filter='brightness(1.5)'}
-                        onMouseLeave={e => e.currentTarget.style.filter=''}
+              <style>{`
+                @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.7)} }
+                @keyframes float-up { 0%{opacity:0;transform:translateY(12px)} 100%{opacity:1;transform:translateY(0)} }
+                @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+                @keyframes orbit { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+                @keyframes typing { 0%,100%{opacity:.3} 50%{opacity:1} }
+              `}</style>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gridTemplateRows:'auto auto', gap:16 }}>
+                
+                {/* ── Greeting + Clock — spans 2 cols ── */}
+                <div style={{ 
+                  gridColumn:'1 / 3', borderRadius:16, padding:28, position:'relative', overflow:'hidden',
+                  background:'linear-gradient(135deg, rgba(129,140,248,.08), rgba(52,211,153,.05))',
+                  border:'1px solid rgba(129,140,248,.15)',
+                }}>
+                  <LiveGreeting user={user} rooms={rooms} />
+                </div>
+
+                {/* ── Active Rooms Counter ── */}
+                <div style={{ 
+                  borderRadius:16, padding:24, textAlign:'center',
+                  background:'rgba(255,255,255,.025)', border:'1px solid rgba(255,255,255,.06)',
+                  display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                }}>
+                  <div style={{ position:'relative', width:64, height:64, marginBottom:12 }}>
+                    <svg width="64" height="64" viewBox="0 0 64 64" style={{ transform:'rotate(-90deg)' }}>
+                      <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="4" />
+                      <circle cx="32" cy="32" r="28" fill="none" stroke="url(#roomGrad)" strokeWidth="4"
+                        strokeDasharray={`${Math.min(rooms.length * 17.6, 175.9)} 175.9`}
+                        strokeLinecap="round"
+                        style={{ transition:'stroke-dasharray .8s ease' }}
                       />
-                    ))}
+                      <defs>
+                        <linearGradient id="roomGrad" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="#34D399" />
+                          <stop offset="100%" stopColor="#818CF8" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <span style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, fontWeight:800, color:'#F3F4F6' }}>
+                      {rooms.length}
+                    </span>
                   </div>
-                  {/* BG watermark */}
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ position:'absolute',right:-10,top:-10,fontSize:160,color:'rgba(255,255,255,.025)',pointerEvents:'none',fontVariationSettings:"'wght' 100" }}
-                  >
-                    monitoring
-                  </span>
+                  <span style={{ fontSize:10, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'#6B7280' }}>Active Rooms</span>
                 </div>
 
-                {/* Stat card */}
-                <div
-                  style={{ borderRadius:16, padding:24, border:'1px solid rgba(255,255,255,.06)',
-                    background:'rgba(255,255,255,.025)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center' }}
-                >
-                  <span className="gtext-green" style={{ fontSize:52, fontWeight:800, lineHeight:1 }}>{rooms.length}</span>
-                  <span style={{ fontSize:10,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'#4B5563',marginTop:8 }}>Active Rooms</span>
-                  <span style={{ fontSize:12,color:'#374151',marginTop:4 }}>in workspace</span>
+                {/* ── Language Breakdown ── */}
+                <div style={{ 
+                  borderRadius:16, padding:20, 
+                  background:'rgba(255,255,255,.025)', border:'1px solid rgba(255,255,255,.06)',
+                }}>
+                  <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'#6B7280', marginBottom:14 }}>Languages</p>
+                  <LanguageBreakdown rooms={rooms} />
                 </div>
 
-                {/* Tip card */}
-                <div
-                  style={{ borderRadius:16, padding:20, border:'1px solid rgba(255,255,255,.2)',
-                    background:'rgba(255,255,255,.06)', display:'flex', flexDirection:'column', justifyContent:'space-between' }}
-                >
+                {/* ── Coding Pulse ── */}
+                <div style={{ 
+                  borderRadius:16, padding:20, position:'relative', overflow:'hidden',
+                  background:'rgba(255,255,255,.025)', border:'1px solid rgba(255,255,255,.06)',
+                }}>
+                  <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'#6B7280', marginBottom:14 }}>Coding Pulse</p>
+                  <CodingPulse count={rooms.length} />
+                </div>
+
+                {/* ── Quick Actions ── */}
+                <div style={{ 
+                  borderRadius:16, padding:20,
+                  border:'1px solid rgba(255,255,255,.15)',
+                  background:'linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.08))',
+                  display:'flex', flexDirection:'column', justifyContent:'space-between',
+                }}>
                   <div>
-                    <div style={{ width:32,height:32,borderRadius:9,background:'rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:12 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize:18,color:'#F3F4F6' }}>tips_and_updates</span>
+                    <div style={{ width:32, height:32, borderRadius:9, background:'rgba(129,140,248,.15)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:12 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize:17, color:'#818CF8' }}>rocket_launch</span>
                     </div>
-                    <p style={{ fontSize:13,fontWeight:600,color:'#E5E7EB',marginBottom:4 }}>Quick Tip</p>
-                    <p style={{ fontSize:12,color:'#4B5563',lineHeight:1.6 }}>
-                      Share the room link with teammates for instant real-time collaboration.
+                    <p style={{ fontSize:13, fontWeight:600, color:'#E5E7EB', marginBottom:4 }}>Quick Start</p>
+                    <p style={{ fontSize:12, color:'#4B5563', lineHeight:1.6 }}>
+                      Create a room and share the ID to start collaborating instantly.
                     </p>
                   </div>
-                  <button
-                    onClick={() => setModal(true)}
-                    style={{ marginTop:12,fontSize:12,fontWeight:600,color:'#F3F4F6',background:'none',border:'none',cursor:'pointer',display:'flex',alignItems:'center',gap:4,padding:0 }}
-                  >
-                    Create a room <span className="material-symbols-outlined" style={{ fontSize:14 }}>arrow_forward</span>
-                  </button>
+                  <div style={{ display:'flex', gap:8, marginTop:14 }}>
+                    <button
+                      onClick={() => setModal(true)}
+                      style={{ flex:1, fontSize:12, fontWeight:600, color:'#fff', background:'linear-gradient(135deg,#818CF8,#6366F1)', border:'none', borderRadius:8, padding:'8px 0', cursor:'pointer', transition:'transform .15s' }}
+                      onMouseEnter={e => e.currentTarget.style.transform='translateY(-1px)'}
+                      onMouseLeave={e => e.currentTarget.style.transform=''}
+                    >
+                      New Room
+                    </button>
+                    <button
+                      onClick={() => setJoinModal(true)}
+                      style={{ flex:1, fontSize:12, fontWeight:600, color:'#D1D5DB', background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.1)', borderRadius:8, padding:'8px 0', cursor:'pointer', transition:'transform .15s' }}
+                      onMouseEnter={e => e.currentTarget.style.transform='translateY(-1px)'}
+                      onMouseLeave={e => e.currentTarget.style.transform=''}
+                    >
+                      Join Room
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -515,6 +542,159 @@ export default function Dashboard() {
 }
 
 /* ── Room Card ── */
+/* ── Live Greeting with real-time clock ── */
+function LiveGreeting({ user, rooms }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const h = now.getHours();
+  const greeting = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
+  const emoji = h < 12 ? '☀️' : h < 17 ? '🌤️' : '🌙';
+  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const dateStr = now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+
+  const totalCollabs = rooms.reduce((sum, r) => sum + (r.participants?.length || 0), 0);
+
+  return (
+    <div style={{ animation:'float-up .4s ease' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:12 }}>
+        <div>
+          <p style={{ fontSize:13, color:'#818CF8', fontWeight:600, marginBottom:4 }}>{emoji} {greeting}</p>
+          <h2 style={{ fontSize:22, fontWeight:800, color:'#F1F5F9', marginBottom:6 }}>
+            {user?.username || 'Developer'}
+          </h2>
+          <p style={{ fontSize:13, color:'#4B5563' }}>{dateStr}</p>
+        </div>
+        <div style={{ textAlign:'right' }}>
+          <p style={{ fontSize:32, fontWeight:200, color:'#E2E8F0', fontFamily:"'JetBrains Mono', monospace", letterSpacing:2 }}>
+            {timeStr}
+          </p>
+        </div>
+      </div>
+      <div style={{ display:'flex', gap:24, marginTop:18 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ width:8, height:8, borderRadius:'50%', background:'#34D399', boxShadow:'0 0 6px #34D399' }} />
+          <span style={{ fontSize:12, color:'#6B7280' }}><strong style={{ color:'#D1D5DB' }}>{rooms.length}</strong> rooms active</span>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ width:8, height:8, borderRadius:'50%', background:'#818CF8', boxShadow:'0 0 6px #818CF8' }} />
+          <span style={{ fontSize:12, color:'#6B7280' }}><strong style={{ color:'#D1D5DB' }}>{totalCollabs}</strong> total collaborators</span>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <span style={{ fontSize:12, color:'#4B5563', display:'flex', alignItems:'center', gap:4 }}>
+            <span style={{ display:'inline-flex', gap:2 }}>
+              {[0,1,2].map(i => (
+                <span key={i} style={{ width:3, height:3, borderRadius:'50%', background:'#818CF8', animation:`typing 1.2s ease ${i*0.2}s infinite` }} />
+              ))}
+            </span>
+            coding in progress
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Language usage breakdown ── */
+function LanguageBreakdown({ rooms }) {
+  const counts = {};
+  rooms.forEach(r => {
+    const lang = r.language || 'javascript';
+    counts[lang] = (counts[lang] || 0) + 1;
+  });
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const max = sorted.length > 0 ? sorted[0][1] : 1;
+
+  const colors = {
+    javascript: '#F59E0B', typescript: '#3B82F6', python: '#10B981',
+    html: '#F97316', css: '#A78BFA', java: '#EF4444', cpp: '#60A5FA',
+    go: '#06B6D4', rust: '#F97316', ruby: '#EF4444', php: '#818CF8',
+    bash: '#4ADE80', markdown: '#D1D5DB',
+  };
+
+  if (sorted.length === 0) {
+    return (
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:60, color:'#374151', fontSize:12 }}>
+        No rooms yet
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+      {sorted.map(([lang, count]) => (
+        <div key={lang}>
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+            <span style={{ fontSize:12, fontWeight:600, color:'#D1D5DB', textTransform:'capitalize' }}>{lang}</span>
+            <span style={{ fontSize:11, color:'#6B7280' }}>{count} room{count !== 1 ? 's' : ''}</span>
+          </div>
+          <div style={{ height:6, borderRadius:3, background:'rgba(255,255,255,.04)', overflow:'hidden' }}>
+            <div style={{
+              height:'100%', borderRadius:3,
+              width:`${(count / max) * 100}%`,
+              background:`linear-gradient(90deg, ${colors[lang] || '#818CF8'}, ${colors[lang] || '#818CF8'}80)`,
+              transition:'width .8s ease',
+              boxShadow:`0 0 8px ${colors[lang] || '#818CF8'}40`,
+            }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Animated coding pulse ── */
+function CodingPulse({ count }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick(v => v + 1), 80);
+    return () => clearInterval(t);
+  }, []);
+
+  // Generate a waveform
+  const bars = 20;
+  const heights = Array.from({ length: bars }, (_, i) => {
+    const base = count > 0 ? 0.3 : 0.05;
+    const wave = Math.sin((tick + i) * 0.3) * 0.3;
+    const pulse = Math.sin((tick + i * 2) * 0.15) * 0.2;
+    return Math.max(0.08, Math.min(1, base + wave + pulse));
+  });
+
+  return (
+    <div>
+      <div style={{ display:'flex', gap:3, height:50, alignItems:'center' }}>
+        {heights.map((h, i) => (
+          <div key={i} style={{
+            flex:1, height:`${h * 100}%`,
+            borderRadius:2,
+            background: count > 0
+              ? `linear-gradient(180deg, #34D399, #818CF8)`
+              : 'rgba(255,255,255,.06)',
+            opacity: count > 0 ? 0.4 + h * 0.6 : 0.3,
+            transition:'height .1s linear',
+          }} />
+        ))}
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:12 }}>
+        {count > 0 ? (
+          <>
+            <span style={{ width:6, height:6, borderRadius:'50%', background:'#34D399', animation:'pulse-dot 1.5s ease infinite' }} />
+            <span style={{ fontSize:11, color:'#6B7280' }}>Live — <strong style={{ color:'#34D399' }}>{count}</strong> active session{count!==1?'s':''}</span>
+          </>
+        ) : (
+          <>
+            <span style={{ width:6, height:6, borderRadius:'50%', background:'#374151' }} />
+            <span style={{ fontSize:11, color:'#374151' }}>No active sessions</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function RoomCard({ room, meta, onClick, onDelete, currentUserId, viewMode = 'grid' }) {
   const isOwner = room.ownerId === currentUserId || room.ownerId?._id === currentUserId || (currentUserId && room.ownerId?.toString?.() === currentUserId?.toString?.());
   return (
