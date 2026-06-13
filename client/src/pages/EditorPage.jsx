@@ -618,7 +618,7 @@ export default function EditorPage() {
           </div>
 
           {/* Chat */}
-          <ChatPanel roomId={roomId} socket={socket} user={user} />
+          <ChatPanel roomId={roomId} socket={socket} user={user} users={users} />
         </main>
       </div>
 

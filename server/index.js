@@ -108,20 +108,32 @@ app.use('/api/proxy/:port', (req, res) => {
     const headers = { ...proxyRes.headers };
     const contentType = headers['content-type'] || '';
 
-    // For HTML responses, inject <base> tag so relative URLs work through proxy
+    // For HTML responses, inject script that patches fetch/XHR to rewrite URLs through proxy
     if (contentType.includes('text/html')) {
       let body = '';
       proxyRes.setEncoding('utf8');
       proxyRes.on('data', chunk => body += chunk);
       proxyRes.on('end', () => {
-        // Inject <base> so fetch('/api/todos') → /api/proxy/3001/api/todos
-        const baseTag = `<base href="${proxyBase}/">`;
+        // Inject script that rewrites fetch('/...') and XHR to go through proxy
+        const patchScript = `<script>(function(){
+var B='${proxyBase}';
+var _f=window.fetch;
+window.fetch=function(u,o){
+if(typeof u==='string'&&u.startsWith('/')&&!u.startsWith(B))u=B+u;
+return _f.call(this,u,o);
+};
+var _o=XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open=function(m,u){
+if(typeof u==='string'&&u.startsWith('/')&&!u.startsWith(B))u=B+u;
+return _o.apply(this,arguments);
+};
+})();</script>`;
         if (body.includes('<head>')) {
-          body = body.replace('<head>', `<head>${baseTag}`);
+          body = body.replace('<head>', `<head>${patchScript}`);
         } else if (body.includes('<HEAD>')) {
-          body = body.replace('<HEAD>', `<HEAD>${baseTag}`);
+          body = body.replace('<HEAD>', `<HEAD>${patchScript}`);
         } else {
-          body = baseTag + body;
+          body = patchScript + body;
         }
         if (!contentType.includes('charset')) {
           headers['content-type'] = contentType + '; charset=utf-8';

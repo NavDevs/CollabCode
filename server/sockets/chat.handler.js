@@ -34,6 +34,13 @@ const registerChatHandler = (io, socket) => {
       console.error('chat-message error:', error.message);
     }
   });
+
+  // Typing indicator
+  socket.on('user-typing', ({ roomId, username }) => {
+    if (roomId) {
+      socket.to(roomId).emit('user-typing', { username });
+    }
+  });
 };
 
 module.exports = { registerChatHandler };
