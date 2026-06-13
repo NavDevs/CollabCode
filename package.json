@@ -7,9 +7,10 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
+    "install:runtimes": "apt-get update && apt-get install -y golang-go default-jdk g++ gcc rustc ruby php-cli || echo 'Runtime install skipped (not root or not Linux)'",
     "install:all": "npm install --include=dev && cd server && npm install --include=dev && cd ../client && npm install --include=dev",
     "prebuild:client": "node -e \"const fs=require('fs');const vars=Object.entries(process.env).filter(([k])=>k.startsWith('VITE_')).map(([k,v])=>k+'='+v).join('\\n');fs.writeFileSync('./client/.env',vars);console.log('Wrote',vars.split('\\n').length,'VITE_ vars to client/.env')\"",
-    "build": "npm run install:all && npm run prebuild:client && cd client && npm run build",
+    "build": "npm run install:runtimes && npm run install:all && npm run prebuild:client && cd client && npm run build",
     "start": "cd server && npm start"
   },
   "devDependencies": {
