@@ -61,6 +61,7 @@ const userSchema = new mongoose.Schema({
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.passwordHash;
+  delete user.githubAccessToken;
   delete user.__v;
   return user;
 };

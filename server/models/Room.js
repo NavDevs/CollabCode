@@ -62,6 +62,13 @@ const roomSchema = new mongoose.Schema({
   },
 });
 
+roomSchema.methods.toJSON = function () {
+  const room = this.toObject();
+  delete room.password;
+  delete room.__v;
+  return room;
+};
+
 const Room = mongoose.model('Room', roomSchema);
 
 module.exports = Room;
