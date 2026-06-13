@@ -73,12 +73,18 @@ shopt -s histappend
       });
 
       const detectedPorts = new Set();
+      let portClearTimer = null;
       terminalSessions.set(socket.id, { process: proc, roomId });
 
       // Stream stdout to client and detect server ports
       proc.stdout.on('data', (data) => {
         const text = data.toString('utf8');
         socket.emit('terminal-output', text);
+
+        // Clear detected ports when user stops a server (Ctrl+C or process exits)
+        if (text.includes('^C') || text.includes('SIGINT') || text.includes('SIGTERM')) {
+          detectedPorts.clear();
+        }
 
         // Detect server ports in output
         const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || '';
@@ -93,6 +99,9 @@ shopt -s histappend
             detectedPorts.add(port);
             const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
             socket.emit('terminal-output', `\r\n\x1b[1;36m🌐 Live Preview: \x1b[4m${proxyUrl}\x1b[0m\r\n`);
+            // Auto-clear this port after 5s so re-running shows the link again
+            clearTimeout(portClearTimer);
+            portClearTimer = setTimeout(() => detectedPorts.delete(port), 5000);
           }
         }
         while ((match = PORT_REGEX2.exec(text)) !== null) {
@@ -101,6 +110,8 @@ shopt -s histappend
             detectedPorts.add(port);
             const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
             socket.emit('terminal-output', `\r\n\x1b[1;36m🌐 Live Preview: \x1b[4m${proxyUrl}\x1b[0m\r\n`);
+            clearTimeout(portClearTimer);
+            portClearTimer = setTimeout(() => detectedPorts.delete(port), 5000);
           }
         }
       });
