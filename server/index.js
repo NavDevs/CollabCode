@@ -31,37 +31,18 @@ app.use(helmet({
   frameguard: false,
 }));
 
-// Cross-origin isolation headers required by WebContainers (SharedArrayBuffer)
-app.use((req, res, next) => {
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
-  next();
-});
-
-// Rate limiting: max 100 requests per minute per IP for the API
-const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 1000, // Limit each IP to 1000 requests per `window` (here, per minute)
-  message: { error: 'Too many requests from this IP, please try again after a minute' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api/', limiter);
-
-// Middleware
-app.use(express.json());
+// CORS setup
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
   process.env.CLIENT_URL,
-  process.env.VITE_SOCKET_URL, // Render production URL
+  process.env.VITE_SOCKET_URL,
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. curl / mobile apps)
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -72,74 +53,73 @@ app.use(
   })
 );
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 1000,
+  message: { error: 'Too many requests, try again in a minute' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
+app.use('/api/', limiter);
 
-// Mount routes
-app.use('/api/auth', authRoutes);
-app.use('/api/rooms', roomRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/workspaces', workspaceRoutes);
-app.use('/api/github', githubRoutes);
-
-// Proxy route: forwards requests to user-started servers in the terminal
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROXY ROUTE — MUST be BEFORE express.json() so req body stream is preserved
+// ═══════════════════════════════════════════════════════════════════════════════
 app.use('/api/proxy/:port', (req, res) => {
   const port = parseInt(req.params.port);
   if (isNaN(port) || port < 1024 || port > 65535) {
     return res.status(400).json({ error: 'Invalid port' });
   }
 
-  const http = require('http');
+  const httpLib = require('http');
   const targetPath = req.url || '/';
   const proxyBase = `/api/proxy/${port}`;
+
+  // Build headers — remove problematic ones
+  const fwdHeaders = { ...req.headers };
+  delete fwdHeaders['host'];
+  delete fwdHeaders['content-length']; // let Node recalculate
+  fwdHeaders['host'] = `127.0.0.1:${port}`;
+
   const options = {
     hostname: '127.0.0.1',
     port,
     path: targetPath,
     method: req.method,
-    headers: { ...req.headers, host: `127.0.0.1:${port}` },
-    timeout: 15000,
+    headers: fwdHeaders,
+    timeout: 30000,
   };
 
-  const proxyReq = http.request(options, (proxyRes) => {
+  const proxyReq = httpLib.request(options, (proxyRes) => {
     const headers = { ...proxyRes.headers };
     const contentType = headers['content-type'] || '';
 
-    // For HTML responses, inject script that patches fetch/XHR to rewrite URLs through proxy
+    // Remove security headers that block proxy pages
+    delete headers['cross-origin-opener-policy'];
+    delete headers['cross-origin-embedder-policy'];
+    delete headers['cross-origin-resource-policy'];
+
+    // For HTML: inject fetch/XHR monkey-patch so absolute URLs route through proxy
     if (contentType.includes('text/html')) {
       let body = '';
       proxyRes.setEncoding('utf8');
       proxyRes.on('data', chunk => body += chunk);
       proxyRes.on('end', () => {
-        // Inject script that rewrites fetch('/...') and XHR to go through proxy
-        const patchScript = `<script>(function(){
-var B='${proxyBase}';
-var _f=window.fetch;
-window.fetch=function(u,o){
-if(typeof u==='string'&&u.startsWith('/')&&!u.startsWith(B))u=B+u;
-return _f.call(this,u,o);
-};
-var _o=XMLHttpRequest.prototype.open;
-XMLHttpRequest.prototype.open=function(m,u){
-if(typeof u==='string'&&u.startsWith('/')&&!u.startsWith(B))u=B+u;
-return _o.apply(this,arguments);
-};
-})();</script>`;
+        const patch = `<script>(function(){var B='${proxyBase}';var _f=window.fetch;window.fetch=function(u,o){if(typeof u==='string'&&u.startsWith('/')&&!u.startsWith(B))u=B+u;return _f.call(this,u,o);};var _o=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(typeof u==='string'&&u.startsWith('/')&&!u.startsWith(B))u=B+u;return _o.apply(this,arguments);};})();<\/script>`;
+        // Inject after <head> or at the very start
         if (body.includes('<head>')) {
-          body = body.replace('<head>', `<head>${patchScript}`);
-        } else if (body.includes('<HEAD>')) {
-          body = body.replace('<HEAD>', `<HEAD>${patchScript}`);
+          body = body.replace('<head>', '<head>' + patch);
+        } else if (body.includes('<html>')) {
+          body = body.replace('<html>', '<html><head>' + patch + '</head>');
         } else {
-          body = patchScript + body;
+          body = patch + body;
         }
         if (!contentType.includes('charset')) {
           headers['content-type'] = contentType + '; charset=utf-8';
         }
         delete headers['content-length'];
-        headers['content-length'] = Buffer.byteLength(body);
+        headers['content-length'] = Buffer.byteLength(body, 'utf8');
         res.writeHead(proxyRes.statusCode, headers);
         res.end(body);
       });
@@ -156,26 +136,43 @@ return _o.apply(this,arguments);
 
   proxyReq.on('timeout', () => {
     proxyReq.destroy();
-    res.status(504).send('<h2>Server timeout</h2><p>The server took too long to respond.</p>');
+    if (!res.headersSent) res.status(504).send('<h2>Server timeout</h2>');
   });
 
   proxyReq.on('error', () => {
     if (!res.headersSent) {
-      res.status(502).send(`<meta charset="utf-8"><h2>No server running on port ${port}</h2><p>Start a server in the terminal first, e.g.:<br><code>node server.js</code></p>`);
+      res.status(502).send(`<meta charset="utf-8"><h2>No server running on port ${port}</h2><p>Start a server in the terminal: <code>node server.js</code></p>`);
     }
   });
 
+  // Pipe the raw request body (works because express.json() hasn't consumed it yet)
   req.pipe(proxyReq);
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BODY PARSER — AFTER proxy so proxy can pipe raw body
+// ═══════════════════════════════════════════════════════════════════════════════
+app.use(express.json());
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: Date.now() });
+});
+
+// Mount API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/rooms', roomRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/workspaces', workspaceRoutes);
+app.use('/api/github', githubRoutes);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
   const clientDist = path.join(__dirname, '../client/dist');
   app.use(express.static(clientDist));
   
-  // Only serve index.html for frontend routes (not API, not files with extensions)
   app.get('*', (req, res, next) => {
-    // Skip if the request looks like an API call or a file with an extension
     if (req.path.startsWith('/api') || req.path.includes('.')) {
       return next();
     }
@@ -183,7 +180,7 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Create HTTP server and Socket.IO instance
+// Create HTTP server and Socket.IO
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -200,10 +197,7 @@ setupSocket(io);
 const PORT = process.env.PORT || 5000;
 
 const start = async () => {
-  // Connect to MongoDB
   await connectDB();
-
-  // Connect to Redis (optional — won't crash if unavailable)
   await connectRedis();
 
   server.listen(PORT, () => {

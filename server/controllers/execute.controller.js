@@ -135,9 +135,8 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
     return;
   }
 
-  // 2. Create a unique temp directory for this run
-  const runId = `collabcode_${roomId}_${Date.now()}`;
-  const runDir = path.join(os.tmpdir(), runId);
+  // 2. Use the SAME workspace directory as the terminal (so npm packages are available)
+  const runDir = path.join(os.tmpdir(), `collabcode_ws_${roomId}`);
   fs.mkdirSync(runDir, { recursive: true });
 
   let entryFileAbsPath = null;
@@ -170,14 +169,14 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
   } catch (err) {
     emit('stderr', `✗ Failed to write workspace to disk: ${err.message}\n`);
     io.to(roomId).emit('exec-done', { exitCode: 1, duration: 0, language, runner: user.username });
-    cleanUpDir(runDir);
+    // Don't clean up — shared workspace with terminal
     return;
   }
 
   if (!entryFileAbsPath) {
     emit('stderr', `✗ Target file ${targetPath} not found in workspace.\n`);
     io.to(roomId).emit('exec-done', { exitCode: 1, duration: 0, language, runner: user.username });
-    cleanUpDir(runDir);
+    // Don't clean up — shared workspace with terminal
     return;
   }
 
@@ -199,7 +198,7 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
       if (compileResult.exitCode !== 0) {
         emit('stderr', `\n✗ Compilation failed with exit code ${compileResult.exitCode}\n`);
         io.to(roomId).emit('exec-done', { exitCode: compileResult.exitCode, duration: Date.now() - started, language, runner: user.username });
-        cleanUpDir(runDir);
+        // Don't clean up — shared workspace with terminal
         return;
       }
       if (compileResult.stdout) {
@@ -209,7 +208,7 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
     } catch (err) {
       emit('stderr', `✗ Compiler not found: "${compileConfig.cmd}". Make sure ${language} is installed on the server.\n`);
       io.to(roomId).emit('exec-done', { exitCode: 1, duration: Date.now() - started, language, runner: user.username });
-      cleanUpDir(runDir);
+      // Don't clean up — shared workspace with terminal
       return;
     }
   }
@@ -239,13 +238,13 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
       } catch (fbErr) {
         emit('stderr', `✗ Could not start runtime "${cmd}" or "${fb.cmd}": ${fbErr.message}\n`);
         io.to(roomId).emit('exec-done', { exitCode: 1, duration: 0, language, runner: user.username });
-        cleanUpDir(runDir);
+        // Don't clean up — shared workspace with terminal
         return;
       }
     } else {
       emit('stderr', `✗ Could not start runtime "${cmd}": ${err.message}\n`);
       io.to(roomId).emit('exec-done', { exitCode: 1, duration: 0, language, runner: user.username });
-      cleanUpDir(runDir);
+      // Don't clean up — shared workspace with terminal
       return;
     }
   }
@@ -301,14 +300,14 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
 
   child.on('close', (code, signal) => {
     clearTimeout(killer);
-    cleanUpDir(runDir);
+    // Don't clean up — shared workspace with terminal
     const duration = Date.now() - started;
     io.to(roomId).emit('exec-done', { exitCode: code ?? (signal ? 1 : 0), duration, language, runner: user.username });
   });
 
   child.on('error', err => {
     clearTimeout(killer);
-    cleanUpDir(runDir);
+    // Don't clean up — shared workspace with terminal
     emit('stderr', `✗ Runtime error: ${err.message}\n`);
     io.to(roomId).emit('exec-done', { exitCode: 1, duration: Date.now() - started, language, runner: user.username });
   });
