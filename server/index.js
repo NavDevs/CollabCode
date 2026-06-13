@@ -18,6 +18,7 @@ const roomRoutes = require('./routes/room.routes');
 const userRoutes = require('./routes/user.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const workspaceRoutes = require('./routes/workspace.routes');
+const githubRoutes = require('./routes/github.routes');
 
 // Create Express app
 const app = express();
@@ -82,6 +83,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/workspaces', workspaceRoutes);
+app.use('/api/github', githubRoutes);
 
 // Proxy route: forwards requests to user-started servers in the terminal
 app.use('/api/proxy/:port', (req, res) => {
