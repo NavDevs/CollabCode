@@ -2,7 +2,7 @@
 
 # 🚀 CollabCode — Real-Time Collaborative Code Editor
 
-### Build, Code, and Collaborate — All in Your Browser
+### Build Full-Stack Apps Together — Live in Your Browser
 
 [![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-collabcode--ihw7.onrender.com-059669?style=for-the-badge&logoColor=white)](https://collabcode-ihw7.onrender.com)
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
@@ -12,7 +12,7 @@
 
 ---
 
-**CollabCode** is a full-featured, browser-based collaborative code editor — similar to **VS Code Online** — where multiple developers can write, run, and debug code together in real time. It features a Monaco code editor, an integrated Linux terminal, real-time collaboration powered by Yjs CRDTs, team chat, and multi-language code execution.
+**CollabCode** is a full-featured, browser-based collaborative code editor — similar to **VS Code Online** — where multiple developers can build full-stack applications together in real time. It features a Monaco code editor, an integrated Linux terminal, real-time collaboration powered by Yjs CRDTs, GitHub integration, team chat, and multi-language code execution.
 
 </div>
 
@@ -22,7 +22,7 @@
 
 ### **[https://collabcode-ihw7.onrender.com](https://collabcode-ihw7.onrender.com)**
 
-> Sign up, create a room, share the link, and start coding together!
+> Sign in with Google, create a room, share the link, and start building together!
 
 ---
 
@@ -32,15 +32,31 @@
 |---|---|
 | 🖥️ **Monaco Editor** | VS Code's editor engine with syntax highlighting, IntelliSense, and multi-language support |
 | 👥 **Real-Time Collaboration** | Multiple users edit the same file simultaneously with conflict-free merging (Yjs CRDT) |
+| 📁 **Multi-File Workspace** | Create unlimited files — JS, TS, Python, HTML, CSS, Bash — all in one room |
+| ▶️ **Code Execution** | Run JavaScript, Python, TypeScript, and Bash directly from the editor |
+| 🌐 **Live Preview** | Start a web server and preview it via built-in proxy — perfect for full-stack apps |
+| 🖥️ **Integrated Terminal** | Full Linux shell (bash) with `npm install`, `node`, `python3`, `git`, etc. |
+| 🔗 **GitHub Integration** | Connect GitHub, import repos, and push entire workspaces as commits |
 | 💬 **Team Chat** | Built-in chat panel for communication within coding rooms |
-| 🖥️ **Integrated Terminal** | Full Linux shell (bash) with `ls`, `cd`, `npm install`, `node`, `python3`, etc. |
-| ▶️ **Code Execution** | Run JavaScript, Python, TypeScript, Go directly from the editor |
-| 🌐 **Live Preview** | Start a web server in the terminal and preview it via built-in proxy |
-| 📁 **File Explorer** | Create, rename, delete files and folders — just like VS Code |
-| 🔐 **Authentication** | Secure sign-up/login powered by Clerk |
+| 🔐 **Authentication** | Secure sign-in with Google via Clerk |
 | 🎨 **Dark Theme** | Premium VS Code-inspired dark UI with glassmorphism effects |
 | 🔔 **Notifications** | Real-time notifications when collaborators join, leave, or run code |
 | 📊 **Presence Indicators** | See who's online with colored avatars and live cursor positions |
+
+---
+
+## 🛠️ Supported Languages
+
+| Language | Run ▶ | Syntax Highlighting | Default Template |
+|---|---|---|---|
+| **JavaScript** | ✅ | ✅ | `main.js` |
+| **TypeScript** | ✅ | ✅ | `main.ts` |
+| **Python** | ✅ | ✅ | `main.py` |
+| **HTML** | ✅ (via Live Preview) | ✅ | `index.html` |
+| **CSS** | ✅ (via Live Preview) | ✅ | `style.css` |
+| **Bash/Shell** | ✅ | ✅ | `main.sh` |
+
+> Rooms are **language-agnostic** — create any combination of files and build full-stack applications!
 
 ---
 
@@ -56,10 +72,11 @@
 | **Xterm.js** | Terminal emulator for the integrated shell |
 | **Socket.IO Client** | Real-time WebSocket communication |
 | **Tailwind CSS 4** | Utility-first CSS framework |
-| **Clerk React** | Authentication UI components |
+| **Clerk React** | Authentication UI components (Google OAuth) |
 | **React Router v7** | Client-side routing |
 | **Axios** | HTTP client for API requests |
 | **React Hot Toast** | Beautiful toast notifications |
+| **Canvas Confetti** | Celebratory effects on room creation |
 
 ### Backend
 | Technology | Purpose |
@@ -69,6 +86,7 @@
 | **MongoDB + Mongoose** | Database for users, rooms, files, and documents |
 | **Yjs (Server)** | Server-side CRDT document management and persistence |
 | **Clerk (Backend)** | JWT verification and user authentication |
+| **GitHub API** | OAuth, repo import/export (native `fetch`) |
 | **Redis (ioredis)** | Optional caching and session management |
 | **Helmet** | Security headers middleware |
 | **Zod** | Request validation schemas |
@@ -78,7 +96,7 @@
 ### DevOps & Deployment
 | Technology | Purpose |
 |---|---|
-| **Render** | Cloud hosting (single Web Service deployment) |
+| **Render** | Cloud hosting (single native Node Web Service) |
 | **GitHub** | Version control and CI/CD trigger |
 | **MongoDB Atlas** | Cloud-hosted database |
 
@@ -98,35 +116,39 @@ CollabCode/
 │   ├── 📄 package.json
 │   ├── 📄 vite.config.js
 │   └── 📁 src/
-│       ├── 📄 main.jsx          # App entry point
+│       ├── 📄 main.jsx          # App entry point (Clerk provider)
 │       ├── 📄 App.jsx           # Routes & providers
-│       ├── 📄 index.css         # Global styles
+│       ├── 📄 App.css           # Global styles & animations
 │       │
 │       ├── 📁 components/       # Reusable UI Components
+│       │   ├── BrandMark.jsx        # Animated logo
 │       │   ├── ChatPanel.jsx        # Team chat sidebar
 │       │   ├── FileTree.jsx         # File explorer (create/rename/delete)
 │       │   ├── Footer.jsx           # Status bar
-│       │   ├── GithubPanel.jsx      # GitHub integration panel
+│       │   ├── GithubPanel.jsx      # GitHub import/export panel
 │       │   ├── MonacoEditor.jsx     # Monaco editor wrapper
 │       │   ├── NotificationDropdown.jsx  # Notification bell
 │       │   ├── RoomSettingsModal.jsx # Room configuration
 │       │   ├── SideNav.jsx          # Left sidebar navigation
-│       │   └── WebTerminal.jsx      # Integrated terminal (Xterm.js + Socket.IO)
+│       │   ├── TopNav.jsx           # Top navigation bar
+│       │   └── WebTerminal.jsx      # Integrated terminal (Xterm.js)
 │       │
 │       ├── 📁 context/          # React Context Providers
-│       │   ├── AuthContext.jsx      # Authentication state (Clerk)
+│       │   ├── AuthContext.jsx      # Authentication state (Clerk + DB sync)
 │       │   └── SocketContext.jsx    # Socket.IO connection management
 │       │
 │       ├── 📁 pages/            # Page Components
-│       │   ├── LandingPage.jsx      # Homepage / marketing
-│       │   ├── DashboardPage.jsx    # Room management dashboard
+│       │   ├── Landing.jsx          # Homepage with animated demo
+│       │   ├── Dashboard.jsx        # Room management dashboard
 │       │   ├── EditorPage.jsx       # Main coding workspace
-│       │   ├── LoginPage.jsx        # Clerk sign-in
-│       │   └── RegisterPage.jsx     # Clerk sign-up
+│       │   ├── Login.jsx            # Clerk sign-in (Google OAuth)
+│       │   ├── Register.jsx         # Clerk sign-up
+│       │   ├── Rooms.jsx            # Room listing
+│       │   ├── History.jsx          # Activity history
+│       │   └── Profile.jsx          # User profile
 │       │
 │       └── 📁 services/         # API & Utility Services
-│           ├── api.js               # Axios instance with auth interceptor
-│           └── webcontainer.js      # (Legacy) WebContainer service
+│           └── api.js               # Axios instance with Clerk token
 │
 └── 📁 server/                   # 🟢 Node.js Backend (Express)
     ├── 📄 index.js              # Server entry: Express + Socket.IO + static serving
@@ -134,38 +156,42 @@ CollabCode/
     │
     ├── 📁 config/               # Configuration
     │   ├── db.js                    # MongoDB connection
-    │   └── redis.js                 # Redis connection (optional)
+    │   ├── redis.js                 # Redis connection (optional)
+    │   └── gitConfig.js             # GitHub OAuth configuration
     │
     ├── 📁 models/               # Mongoose Schemas
-    │   ├── User.js                  # User profile
+    │   ├── User.js                  # User profile (Clerk + GitHub fields)
     │   ├── Room.js                  # Coding room
     │   ├── Document.js              # Legacy document model
     │   ├── Notification.js          # Notification records
     │   └── WorkspaceFile.js         # File storage with Yjs state
     │
     ├── 📁 controllers/          # Route Handlers
-    │   ├── auth.controller.js       # Register, login, profile
+    │   ├── auth.controller.js       # Profile retrieval
     │   ├── room.controller.js       # CRUD rooms, join/leave
-    │   ├── execute.controller.js    # Server-side code execution
+    │   ├── execute.controller.js    # Code execution with port detection
     │   ├── notification.controller.js
     │   ├── user.controller.js
-    │   └── workspace.controller.js  # File CRUD operations
+    │   └── workspace.controller.js  # File CRUD with 14 language templates
     │
     ├── 📁 routes/               # Express Routes
-    │   ├── auth.routes.js           # POST /api/auth/*
+    │   ├── auth.routes.js           # /api/auth/*
     │   ├── room.routes.js           # /api/rooms/*
+    │   ├── github.routes.js         # /api/github/* (OAuth, import, push)
     │   ├── user.routes.js           # /api/users/*
     │   ├── notification.routes.js   # /api/notifications/*
     │   └── workspace.routes.js      # /api/workspaces/*
     │
     ├── 📁 middleware/           # Express Middleware
-    │   └── auth.js                  # Clerk JWT verification
+    │   ├── auth.js                  # Clerk JWT verification + user sync
+    │   └── gitHubAuth.js            # GitHub webhook signature verification
     │
     ├── 📁 validators/           # Zod Validation Schemas
     │   └── auth.validator.js
     │
     ├── 📁 services/             # Business Logic
     │   ├── yjs.service.js           # Yjs document management & persistence
+    │   ├── githubService.js         # GitHub API interactions
     │   └── notification.service.js  # Real-time notification delivery
     │
     ├── 📁 sockets/              # Socket.IO Event Handlers
@@ -175,10 +201,11 @@ CollabCode/
     │   ├── chat.handler.js          # Real-time chat messages
     │   ├── cursor.handler.js        # Live cursor positions
     │   ├── execute.handler.js       # Code execution events
-    │   └── terminal.handler.js      # Server-side shell terminal
+    │   └── terminal.handler.js      # Server-side shell + port detection
     │
     └── 📁 utils/                # Utilities
-        └── helpers.js
+        ├── helpers.js
+        └── versionControl.js        # Yjs-GitHub version bridging
 ```
 
 ---
@@ -200,7 +227,22 @@ User B types "World"  ──→  Yjs Update  ──→  Socket.IO  ──→  Us
 - Yjs automatically **merges concurrent edits** without conflicts
 - Documents are **persisted to MongoDB** every 5 seconds (debounced)
 
-### 2. Integrated Terminal
+### 2. Multi-File Full-Stack Workspace
+
+Rooms are **language-agnostic** — no single language is locked in. Create any file:
+
+```
+my-project/
+├── server.js          # Node.js backend
+├── index.html         # Frontend page
+├── style.css          # Styles
+├── utils/helper.js    # Utility module
+└── data.py            # Python script
+```
+
+Click **▶ Run** on any file — the editor auto-detects the language from the file extension.
+
+### 3. Integrated Terminal
 
 The terminal provides a **real Linux shell** running on the server:
 
@@ -208,47 +250,47 @@ The terminal provides a **real Linux shell** running on the server:
 Browser (Xterm.js)  ←──Socket.IO──→  Server (bash via pseudo-TTY)
      ↓                                        ↓
   User types                           Shell executes
-  "node main.js"                       actual commands
+  "node server.js"                     actual commands
      ↓                                        ↓
   Sees output                          Streams stdout/stderr
-  in terminal                          back to browser
+  + 🌐 Live Preview link              back to browser
 ```
 
 - When a terminal starts, **workspace files are synced from MongoDB to disk**
-- The server spawns a **bash shell** with a pseudo-TTY (via Linux `script` command)
-- Keystrokes are forwarded from the browser to the server in real-time
-- Output is streamed back and rendered in Xterm.js
-- Supports **command history** (up/down arrows), tab completion, and Ctrl+C
+- The server spawns a **bash shell** with a pseudo-TTY
+- **Port detection** auto-generates Live Preview links when a web server starts
+- Supports command history, tab completion, and Ctrl+C
 
-### 3. Code Execution
+### 4. Code Execution & Live Preview
 
 When you click **▶ Run**:
 
 1. Server fetches **all workspace files** from MongoDB
 2. Files are written to a **temporary directory** on the server
-3. The appropriate runtime is invoked (`node`, `python3`, `go run`, etc.)
-4. **stdout/stderr** are streamed to the client via Socket.IO
-5. Execution is **time-limited** (10 seconds) for safety
-6. Temp files are **cleaned up** after execution
+3. The appropriate runtime is invoked (`node`, `python3`, `bash`, etc.)
+4. **stdout/stderr** are streamed to all room users via Socket.IO
+5. **Port detection** — if output contains `localhost:3001`, a 🌐 Live Preview link is emitted
+6. Execution is **time-limited** (15 seconds) for safety
+7. Temp files are **cleaned up** after execution
 
-### 4. Live Web Server Preview
-
-When you run a web server (e.g., `http.createServer`) in the terminal:
-
-```
-Terminal: node main.js → "Server running on port 3001"
-                              ↓ (auto-detected)
-Terminal shows: 🌐 Live Preview: https://collabcode-ihw7.onrender.com/api/proxy/3001
-                              ↓
-Browser opens proxy URL → Express proxy → localhost:3001 on server
-```
-
-### 5. Authentication Flow
+### 5. GitHub Integration
 
 ```
-User clicks Sign Up → Clerk handles registration → Webhook/API syncs to MongoDB
-User clicks Sign In → Clerk issues JWT → JWT sent with every API request
-Socket connects     → JWT verified     → User attached to socket
+Connect GitHub → Select Repo → Import to Workspace
+                             → Push Workspace to Repo (atomic commit)
+```
+
+- **OAuth2 flow** for secure GitHub authentication
+- **Import** any public/private repo into a room workspace
+- **Push** entire workspace as a single Git commit
+- Uses native `fetch()` with GitHub REST API (no SDK dependency)
+
+### 6. Authentication Flow
+
+```
+User clicks Sign In → Clerk Google OAuth → Session cookie set
+API request         → Clerk middleware verifies JWT → syncUser creates MongoDB record
+Socket connects     → Clerk token verified → User attached to socket
 ```
 
 ---
@@ -289,6 +331,11 @@ PORT=5000
 NODE_ENV=development
 JWT_SECRET=your-secret-key
 
+# GitHub Integration (optional)
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+GITHUB_REDIRECT_URI=http://localhost:5000/api/github/callback
+
 # Redis (optional)
 REDIS_URL=redis://localhost:6379
 
@@ -326,7 +373,7 @@ Open **http://localhost:5173** in your browser.
 
 ## 🌐 Deployment (Render)
 
-CollabCode is deployed as a **single Web Service** on Render:
+CollabCode is deployed as a **single native Node Web Service** on Render:
 
 ### Build Command
 ```bash
@@ -342,7 +389,11 @@ npm start
 Set all variables from `.env.example` in Render's dashboard, plus:
 ```
 NODE_ENV=production
-RENDER_EXTERNAL_URL=https://your-app.onrender.com
+RENDER_EXTERNAL_URL=https://collabcode-ihw7.onrender.com
+CLIENT_URL=https://collabcode-ihw7.onrender.com
+VITE_API_URL=https://collabcode-ihw7.onrender.com/api
+VITE_SOCKET_URL=https://collabcode-ihw7.onrender.com
+GITHUB_REDIRECT_URI=https://collabcode-ihw7.onrender.com/api/github/callback
 ```
 
 ---
@@ -353,7 +404,6 @@ RENDER_EXTERNAL_URL=https://your-app.onrender.com
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/api/auth/me` | Get current user profile |
-| `POST` | `/api/auth/sync` | Sync Clerk user to MongoDB |
 
 ### Rooms
 | Method | Endpoint | Description |
@@ -363,19 +413,31 @@ RENDER_EXTERNAL_URL=https://your-app.onrender.com
 | `GET` | `/api/rooms/:roomId` | Get room details |
 | `POST` | `/api/rooms/:roomId/join` | Join a room |
 | `DELETE` | `/api/rooms/:roomId/leave` | Leave a room |
+| `DELETE` | `/api/rooms/:roomId` | Delete a room (owner only) |
 
 ### Workspace Files
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/api/workspaces/:roomId/files` | List all files |
 | `POST` | `/api/workspaces/:roomId/files` | Create a file |
-| `PUT` | `/api/workspaces/:roomId/files` | Update file content |
+| `PUT` | `/api/workspaces/:roomId/files/rename` | Rename a file |
 | `DELETE` | `/api/workspaces/:roomId/files` | Delete a file |
+
+### GitHub
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/github/auth` | Start GitHub OAuth flow |
+| `GET` | `/api/github/callback` | OAuth callback |
+| `GET` | `/api/github/status` | Check connection status |
+| `GET` | `/api/github/repos` | List connected repos |
+| `POST` | `/api/github/room/:roomId/import` | Import repo into workspace |
+| `POST` | `/api/github/room/:roomId/push-all` | Push workspace to repo |
+| `POST` | `/api/github/disconnect` | Disconnect GitHub |
 
 ### Proxy
 | Method | Endpoint | Description |
 |---|---|---|
-| `ANY` | `/api/proxy/:port/*` | Proxy to user-started servers |
+| `ANY` | `/api/proxy/:port/*` | Proxy to user-started web servers |
 
 ---
 
@@ -425,12 +487,13 @@ RENDER_EXTERNAL_URL=https://your-app.onrender.com
 
 ## 🛡️ Security
 
-- **Clerk Authentication** — Industry-standard auth with JWT tokens
+- **Clerk Authentication** — Industry-standard auth with Google OAuth & JWT tokens
 - **Helmet** — Security headers (XSS, CSRF, clickjacking protection)
 - **Rate Limiting** — 1000 requests/minute per IP
 - **Input Validation** — Zod schemas on all API inputs
 - **CORS** — Restricted to allowed origins
-- **Sandboxed Execution** — Code runs in temp directories with 10s timeout
+- **Sandboxed Execution** — Code runs in temp directories with 15s timeout
+- **GitHub Webhook Verification** — HMAC-SHA256 signature validation
 - **Password Hashing** — bcryptjs with salt rounds
 
 ---
