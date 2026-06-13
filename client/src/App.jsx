@@ -10,6 +10,7 @@ import Rooms from './pages/Rooms';
 import History from './pages/History';
 import EditorPage from './pages/EditorPage';
 import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 import AuthCallback from './pages/AuthCallback';
 import './App.css';
 
@@ -50,6 +51,7 @@ function AppRoutes() {
       <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
       <Route path="/editor/:roomId" element={<ProtectedRoute><EditorPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
       {/* Catch-all → landing */}
       <Route path="*" element={<Navigate to="/" replace />} />

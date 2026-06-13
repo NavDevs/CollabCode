@@ -95,7 +95,7 @@ export default function SideNav({ activeTab, setActiveTab, showChat, setShowChat
   const botItems = [
     ...(setShowChat ? [{ type: 'action', icon: 'chat', label: 'Toggle Chat', action: () => setShowChat(v => !v), isActive: showChat }] : []),
     { type: 'link', icon: 'account_circle', label: 'Account', to: '/profile' },
-    { type: 'link', icon: 'settings', label: 'Settings', to: '/profile' },
+    { type: 'link', icon: 'settings', label: 'Settings', to: '/settings' },
   ];
 
   return (

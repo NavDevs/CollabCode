@@ -564,25 +564,41 @@ function RoomCard({ room, meta, onClick, onDelete, currentUserId, viewMode = 'gr
         </div>
 
         {/* Avatar stack */}
-        <div style={{ display:'flex', flexShrink:0 }}>
+        <div style={{ display:'flex', flexShrink:0, alignItems:'center' }}>
           {(room.participants || []).slice(0, 3).map((p, i) => (
             <div
               key={i}
-              title={p.username}
+              title={p.username || 'User'}
               style={{
-                width:26, height:26, borderRadius:'50%',
-                border:'2px solid #050505',
-                background: p.avatarColor||'#D1D5DB',
+                width:30, height:30, borderRadius:'50%',
+                border:'2px solid #0A0A0F',
+                background: `linear-gradient(135deg, ${p.avatarColor||'#6B7280'}, ${p.avatarColor||'#6B7280'}99)`,
                 display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:9, fontWeight:700, color:'#fff',
-                marginLeft: i > 0 ? -8 : 0,
+                fontSize:11, fontWeight:700, color:'#fff',
+                marginLeft: i > 0 ? -10 : 0,
                 zIndex: 10 - i,
                 position:'relative',
+                outline: `2px solid ${p.avatarColor||'#6B7280'}30`,
+                outlineOffset: 1,
+                cursor: 'default',
+                textShadow: '0 1px 2px rgba(0,0,0,.4)',
               }}
             >
-              {p.username?.charAt(0).toUpperCase()}
+              {p.username?.charAt(0).toUpperCase() || '?'}
             </div>
           ))}
+          {(room.participants || []).length > 3 && (
+            <div style={{
+              width:30, height:30, borderRadius:'50%',
+              border:'2px solid #0A0A0F', marginLeft:-10,
+              background:'rgba(255,255,255,.08)',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:10, fontWeight:700, color:'#6B7280',
+              zIndex: 7, position:'relative',
+            }}>
+              +{(room.participants || []).length - 3}
+            </div>
+          )}
         </div>
       </div>
 
