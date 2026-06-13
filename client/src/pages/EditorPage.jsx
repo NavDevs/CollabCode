@@ -163,10 +163,21 @@ export default function EditorPage() {
   useEffect(() => {
     if (!socket || !connected || !roomId || !activePath) return;
 
+    // Reset code immediately so old file content doesn't bleed into new file
+    setCode('');
+
     // We join the room globally elsewhere, but this hook handles file-specific sync
     const ydoc = new Y.Doc();
     ydocRef.current = ydoc;
     const ytext = ydoc.getText('monaco');
+
+    // Load content from DB first (in case Yjs state is empty for new files)
+    api.get(`/workspaces/${roomId}/files`).then(({ data }) => {
+      const file = (data.files || []).find(f => f.path === activePath);
+      if (file && file.content && !ytext.toString()) {
+        setCode(file.content);
+      }
+    }).catch(() => {});
 
     socket.emit('yjs-sync-request', { roomId, path: activePath });
 
