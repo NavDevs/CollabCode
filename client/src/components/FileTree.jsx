@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -6,9 +6,10 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // New file state
-  const [creating, setCreating] = useState(false);
+  // New file/folder state
+  const [creating, setCreating] = useState(false); // false | 'file' | 'folder'
   const [newFileName, setNewFileName] = useState('');
+  const [createTarget, setCreateTarget] = useState('/'); // folder path to create inside
 
   // Rename state
   const [renaming, setRenaming] = useState(null);
@@ -16,6 +17,12 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
 
   // Folder expanded state
   const [expandedFolders, setExpandedFolders] = useState(new Set(['/']));
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState(null);
+
+  // Cache for preloaded file contents
+  const contentCacheRef = useRef({});
 
   useEffect(() => {
     setLoading(true);
@@ -47,6 +54,13 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
       const { data } = await api.get(`/workspaces/${roomId}/files`);
       const fileList = data?.files || [];
       setFiles(fileList);
+
+      // Preload content cache for instant switching
+      fileList.forEach(f => {
+        if (f.content !== undefined) {
+          contentCacheRef.current[f.path] = f.content;
+        }
+      });
       
       if (fileList.length > 0 && openPaths.length === 0) {
         const defaultFile = fileList.find(f => f.path === '/main.js') || fileList[0];
@@ -89,28 +103,55 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
 
   const handleCreate = async (e) => {
     if (e.key === 'Enter') {
-      if (!newFileName.trim()) return setCreating(false);
-      try {
-        const path = newFileName.startsWith('/') ? newFileName : `/${newFileName}`;
-        const { data } = await api.post(`/workspaces/${roomId}/files`, {
-          path,
-          name: path.split('/').pop(),
-          language: getLanguageFromExt(path)
-        });
-        setFiles(prev => [...prev, data.file].sort((a,b) => a.path.localeCompare(b.path)));
-        setCreating(false);
-        setNewFileName('');
-        
-        if (!openPaths.includes(data.file.path)) {
-          setOpenPaths(prev => [...prev, data.file.path]);
-        }
-        setActivePath(data.file.path);
-      } catch (err) {
-        toast.error(err.response?.data?.error || 'Failed to create file');
+      if (!newFileName.trim()) { setCreating(false); return; }
+
+      const isFolder = creating === 'folder';
+      let path = newFileName.trim();
+
+      // Prefix with target folder
+      if (createTarget !== '/' && !path.startsWith('/')) {
+        path = `${createTarget}/${path}`;
       }
+      if (!path.startsWith('/')) path = `/${path}`;
+
+      if (isFolder) {
+        // Create folder by creating a .gitkeep inside it
+        const keepPath = `${path}/.gitkeep`;
+        try {
+          const { data } = await api.post(`/workspaces/${roomId}/files`, {
+            path: keepPath,
+            name: '.gitkeep',
+            language: 'plaintext',
+          });
+          setFiles(prev => [...prev, data.file].sort((a, b) => a.path.localeCompare(b.path)));
+          setExpandedFolders(prev => new Set([...prev, path]));
+          toast.success(`Folder ${path} created`);
+        } catch (err) {
+          toast.error(err.response?.data?.error || 'Failed to create folder');
+        }
+      } else {
+        try {
+          const { data } = await api.post(`/workspaces/${roomId}/files`, {
+            path,
+            name: path.split('/').pop(),
+            language: getLanguageFromExt(path),
+          });
+          setFiles(prev => [...prev, data.file].sort((a, b) => a.path.localeCompare(b.path)));
+          if (!openPaths.includes(data.file.path)) {
+            setOpenPaths(prev => [...prev, data.file.path]);
+          }
+          setActivePath(data.file.path);
+        } catch (err) {
+          toast.error(err.response?.data?.error || 'Failed to create file');
+        }
+      }
+      setCreating(false);
+      setNewFileName('');
+      setCreateTarget('/');
     } else if (e.key === 'Escape') {
       setCreating(false);
       setNewFileName('');
+      setCreateTarget('/');
     }
   };
 
@@ -152,6 +193,29 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
       }
     } catch (err) {
       toast.error('Failed to delete file');
+    }
+  };
+
+  // Delete all files inside a folder
+  const handleDeleteFolder = async (folderPath) => {
+    const folderFiles = files.filter(f => f.path.startsWith(folderPath + '/'));
+    if (folderFiles.length === 0) return;
+    if (!window.confirm(`Delete folder ${folderPath} and ${folderFiles.length} file(s)?`)) return;
+    
+    try {
+      for (const f of folderFiles) {
+        await api.delete(`/workspaces/${roomId}/files`, { data: { path: f.path } });
+      }
+      setFiles(prev => prev.filter(f => !f.path.startsWith(folderPath + '/')));
+      const deletedPaths = new Set(folderFiles.map(f => f.path));
+      const newOpen = openPaths.filter(p => !deletedPaths.has(p));
+      setOpenPaths(newOpen);
+      if (deletedPaths.has(activePath)) {
+        setActivePath(newOpen.length > 0 ? newOpen[0] : null);
+      }
+      toast.success(`Deleted folder ${folderPath}`);
+    } catch (err) {
+      toast.error('Failed to delete folder');
     }
   };
 
@@ -227,6 +291,10 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
           <div key={child.path}>
             <div 
               onClick={() => toggleFolder(child.path)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenu({ x: e.clientX, y: e.clientY, type: 'folder', path: child.path });
+              }}
               style={{
                 padding: `4px 16px 4px ${level * 14 + 16}px`,
                 display: 'flex', alignItems: 'center', cursor: 'pointer',
@@ -242,12 +310,56 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
               <span className="material-symbols-outlined" style={{ fontSize: 16, marginRight: 6, color: '#D1D5DB' }}>
                 {isExpanded ? 'folder_open' : 'folder'}
               </span>
-              <span style={{ fontSize: 13 }}>{child.label}</span>
+              <span style={{ fontSize: 13, flex: 1 }}>{child.label}</span>
+              {/* Folder action buttons */}
+              <div style={{ display: 'flex', gap: 2, opacity: 0.5 }} onClick={e => e.stopPropagation()}>
+                <button 
+                  onClick={() => { setCreating('file'); setCreateTarget(child.path); setNewFileName(''); }}
+                  style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 0 }}
+                  title="New File"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>note_add</span>
+                </button>
+                <button 
+                  onClick={() => { setCreating('folder'); setCreateTarget(child.path); setNewFileName(''); }}
+                  style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 0 }}
+                  title="New Folder"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>create_new_folder</span>
+                </button>
+                <button 
+                  onClick={() => handleDeleteFolder(child.path)}
+                  style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: 0 }}
+                  title="Delete Folder"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
+                </button>
+              </div>
             </div>
+            {/* Inline create input inside this folder */}
+            {creating && createTarget === child.path && isExpanded && (
+              <div style={{ padding: `4px 16px 4px ${(level + 1) * 14 + 16 + 20}px`, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 14, color: creating === 'folder' ? '#D1D5DB' : '#6B7280' }}>
+                  {creating === 'folder' ? 'create_new_folder' : 'draft'}
+                </span>
+                <input
+                  autoFocus
+                  value={newFileName}
+                  onChange={e => setNewFileName(e.target.value)}
+                  onKeyDown={handleCreate}
+                  onBlur={() => { setCreating(false); setNewFileName(''); setCreateTarget('/'); }}
+                  placeholder={creating === 'folder' ? 'folder-name' : 'filename.js'}
+                  style={{ flex: 1, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(139,92,246,0.5)', color: '#fff', fontSize: 12, padding: '2px 6px', outline: 'none', borderRadius: 4 }}
+                />
+              </div>
+            )}
             {isExpanded && renderTree(child, level + 1)}
           </div>
         );
       } else {
+        // Hide .gitkeep files
+        if (child.label === '.gitkeep') return null;
+
         const { icon, color } = getIcon(child.name);
         const isActive = activePath === child.path;
         const isRenaming = renaming === child.path;
@@ -311,28 +423,37 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
   }
 
   return (
-    <div style={{ width: 240, background: '#0A0A0A', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div 
+      style={{ width: 240, background: '#0A0A0A', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', height: '100%' }}
+      onClick={() => { if (contextMenu) setContextMenu(null); }}
+    >
       <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', color: '#9CA3AF', textTransform: 'uppercase' }}>Explorer</span>
-        {(
-          <button onClick={() => setCreating(true)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 0, display: 'flex' }} title="New File">
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button onClick={() => { setCreating('file'); setCreateTarget('/'); setNewFileName(''); }} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 0, display: 'flex' }} title="New File">
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>note_add</span>
           </button>
-        )}
+          <button onClick={() => { setCreating('folder'); setCreateTarget('/'); setNewFileName(''); }} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: 0, display: 'flex' }} title="New Folder">
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>create_new_folder</span>
+          </button>
+        </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }} className="scroll">
-        {creating && (
+        {/* Root-level create input */}
+        {creating && createTarget === '/' && (
           <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#6B7280' }}>draft</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: creating === 'folder' ? '#D1D5DB' : '#6B7280' }}>
+              {creating === 'folder' ? 'create_new_folder' : 'draft'}
+            </span>
             <input
               autoFocus
               value={newFileName}
               onChange={e => setNewFileName(e.target.value)}
               onKeyDown={handleCreate}
-              onBlur={() => setCreating(false)}
-              placeholder="e.g. src/new.js"
-              style={{ flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.5)', color: '#fff', fontSize: 13, padding: '2px 6px', outline: 'none', borderRadius: 4, width: '100%' }}
+              onBlur={() => { setCreating(false); setNewFileName(''); setCreateTarget('/'); }}
+              placeholder={creating === 'folder' ? 'folder-name' : 'e.g. src/new.js'}
+              style={{ flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#fff', fontSize: 13, padding: '2px 6px', outline: 'none', borderRadius: 4, width: '100%' }}
             />
           </div>
         )}

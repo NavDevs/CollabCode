@@ -166,29 +166,20 @@ export default function EditorPage() {
   useEffect(() => {
     if (!socket || !connected || !roomId || !activePath) return;
 
-    // Show cached content instantly (no blank flash)
+    // Show cached content instantly (zero latency)
     if (fileCacheRef.current[activePath] !== undefined) {
       setCode(fileCacheRef.current[activePath]);
     } else {
-      setCode(''); // Only blank for truly new files
+      setCode('');
     }
 
-    // We join the room globally elsewhere, but this hook handles file-specific sync
+    // Create Yjs doc for this file
     const ydoc = new Y.Doc();
     ydocRef.current = ydoc;
     const ytext = ydoc.getText('monaco');
     let cancelled = false;
 
-    // Load content from DB (fast — shows content before Yjs sync arrives)
-    api.get(`/workspaces/${roomId}/files`).then(({ data }) => {
-      if (cancelled) return;
-      const file = (data.files || []).find(f => f.path === activePath);
-      if (file && file.content && !ytext.toString()) {
-        setCode(file.content);
-        fileCacheRef.current[activePath] = file.content;
-      }
-    }).catch(() => {});
-
+    // Request Yjs state from server (fast, ~50ms via WebSocket)
     socket.emit('yjs-sync-request', { roomId, path: activePath });
 
     const handleSyncInit = ({ roomId: r, path: p, state }) => {
@@ -200,6 +191,16 @@ export default function EditorPage() {
         setCode(content);
         fileCacheRef.current[activePath] = content;
         isRemoteRef.current = false;
+      } else if (!fileCacheRef.current[activePath]) {
+        // No Yjs state and no cache — load from DB as fallback
+        api.get(`/workspaces/${roomId}/files`).then(({ data }) => {
+          if (cancelled) return;
+          const file = (data.files || []).find(f => f.path === activePath);
+          if (file && file.content) {
+            setCode(file.content);
+            fileCacheRef.current[activePath] = file.content;
+          }
+        }).catch(() => {});
       }
     };
 
