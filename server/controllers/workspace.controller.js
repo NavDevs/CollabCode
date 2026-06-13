@@ -2,12 +2,26 @@ const WorkspaceFile = require('../models/WorkspaceFile');
 const Room = require('../models/Room');
 const yjsService = require('../services/yjs.service');
 
-// Default initial file for new rooms
-const DEFAULT_FILE = {
-  path: '/main.js',
-  name: 'main.js',
-  language: 'javascript',
-  content: '// Welcome to CollabCode!\n\nconsole.log("Hello, World!");\n',
+// Default initial file templates for each language
+const DEFAULT_FILES = {
+  javascript: { path: '/main.js',    name: 'main.js',    content: '// Welcome to CollabCode!\n\nconsole.log("Hello, World! 🚀");\n' },
+  typescript: { path: '/main.ts',    name: 'main.ts',    content: '// Welcome to CollabCode!\n\nconst message: string = "Hello, World! 🚀";\nconsole.log(message);\n' },
+  python:     { path: '/main.py',    name: 'main.py',    content: '# Welcome to CollabCode!\n\nprint("Hello, World! 🚀")\n' },
+  java:       { path: '/Main.java',  name: 'Main.java',  content: '// Welcome to CollabCode!\n\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}\n' },
+  cpp:        { path: '/main.cpp',   name: 'main.cpp',   content: '// Welcome to CollabCode!\n\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, World!" << endl;\n    return 0;\n}\n' },
+  c:          { path: '/main.c',     name: 'main.c',     content: '// Welcome to CollabCode!\n\n#include <stdio.h>\n\nint main() {\n    printf("Hello, World!\\n");\n    return 0;\n}\n' },
+  go:         { path: '/main.go',    name: 'main.go',    content: '// Welcome to CollabCode!\n\npackage main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Hello, World!")\n}\n' },
+  rust:       { path: '/main.rs',    name: 'main.rs',    content: '// Welcome to CollabCode!\n\nfn main() {\n    println!("Hello, World!");\n}\n' },
+  ruby:       { path: '/main.rb',    name: 'main.rb',    content: '# Welcome to CollabCode!\n\nputs "Hello, World!"\n' },
+  php:        { path: '/main.php',   name: 'main.php',   content: '<?php\n// Welcome to CollabCode!\n\necho "Hello, World!\\n";\n' },
+  bash:       { path: '/main.sh',    name: 'main.sh',    content: '#!/bin/bash\n# Welcome to CollabCode!\n\necho "Hello, World!"\n' },
+  html:       { path: '/index.html', name: 'index.html', content: '<!DOCTYPE html>\n<html>\n<head><title>CollabCode</title></head>\n<body>\n  <h1>Hello, World!</h1>\n</body>\n</html>\n' },
+  css:        { path: '/style.css',  name: 'style.css',  content: '/* Welcome to CollabCode! */\n\nbody {\n  font-family: sans-serif;\n  background: #0a0a0f;\n  color: #fff;\n}\n' },
+  sql:        { path: '/query.sql',  name: 'query.sql',  content: '-- Welcome to CollabCode!\n\nSELECT "Hello, World!" AS message;\n' },
+};
+
+const getDefaultFile = (language) => {
+  return DEFAULT_FILES[language] || DEFAULT_FILES.javascript;
 };
 
 // GET /api/workspaces/:roomId/files — list all files in a workspace
@@ -19,14 +33,15 @@ const getFiles = async (req, res) => {
 
     let files = await WorkspaceFile.find({ roomId }, { yjsState: 0, content: 0 }).sort({ path: 1 });
     
-    // If empty, initialize the default file
+    // If empty, initialize the default file based on room language
     if (files.length === 0) {
+      const defaultFile = getDefaultFile(room.language);
       const initFile = await WorkspaceFile.create({
         roomId,
-        path: DEFAULT_FILE.path,
-        name: DEFAULT_FILE.name,
-        language: room.language || DEFAULT_FILE.language,
-        content: DEFAULT_FILE.content,
+        path: defaultFile.path,
+        name: defaultFile.name,
+        language: room.language || 'javascript',
+        content: defaultFile.content,
       });
       files = [initFile];
     }
