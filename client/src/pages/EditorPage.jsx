@@ -521,10 +521,9 @@ export default function EditorPage() {
 
         <main style={{ display:'flex',flex:1,overflow:'hidden',height:'100%',minWidth:0 }}>
 
-          {/* ── Sidebar panel (Explorer or GitHub) ── */}
           {showExplorer && (
             <>
-              <aside style={{ width: explorerWidth, minWidth: 160, maxWidth: 500, flexShrink:0, display:'flex', flexDirection:'column', background:'rgba(5,5,12,.98)', borderRight:'1px solid rgba(255,255,255,.05)' }}>
+              <aside style={{ width: explorerWidth, minWidth: 160, maxWidth: 500, flexShrink:0, display:'flex', flexDirection:'column', background:'rgba(5,5,12,.98)', borderRight:'none' }}>
                 {activeTab === 'explorer' && (
                   <FileTree
                     roomId={roomId}
@@ -543,8 +542,7 @@ export default function EditorPage() {
                   />
                 )}
               </aside>
-              {/* Explorer resize handle */}
-              <ResizeHandle onDrag={(dx) => setExplorerWidth(w => Math.max(160, Math.min(500, w + dx)))} />
+              <DragBar onDrag={(dx) => setExplorerWidth(w => Math.max(160, Math.min(500, w + dx)))} />
             </>
           )}
 
@@ -668,7 +666,7 @@ export default function EditorPage() {
           {/* Chat panel with resize */}
           {showChat && (
             <>
-              <ResizeHandle onDrag={(dx) => setChatWidth(w => Math.max(220, Math.min(450, w - dx)))} />
+              <DragBar onDrag={(dx) => setChatWidth(w => Math.max(220, Math.min(450, w - dx)))} />
               <div style={{ width: chatWidth, flexShrink: 0, height: '100%', overflow: 'hidden' }}>
                 <ChatPanel roomId={roomId} socket={socket} user={user} users={users} />
               </div>
@@ -732,66 +730,44 @@ function ExItem({ icon, label, color, active, indent=0 }) {
   );
 }
 
-/* ── Drag-to-resize handle between panels ── */
-function ResizeHandle({ onDrag }) {
-  const [dragging, setDragging] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const onDragRef = useRef(onDrag);
-  onDragRef.current = onDrag;
+function DragBar({ onDrag }) {
+  const cbRef = useRef(onDrag);
+  cbRef.current = onDrag;
+  const [active, setActive] = useState(false);
 
-  const handleMouseDown = useCallback((e) => {
+  const onDown = useCallback((e) => {
     e.preventDefault();
-    e.stopPropagation();
-    setDragging(true);
-    let lastX = e.clientX;
-
-    const onMove = (me) => {
-      me.preventDefault();
-      const dx = me.clientX - lastX;
-      lastX = me.clientX;
-      if (dx !== 0) onDragRef.current(dx);
+    setActive(true);
+    let last = e.clientX;
+    const move = (ev) => {
+      const dx = ev.clientX - last;
+      last = ev.clientX;
+      if (dx !== 0) cbRef.current(dx);
     };
-
-    const onUp = () => {
-      setDragging(false);
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
+    const up = () => {
+      setActive(false);
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   }, []);
 
-  const showLine = dragging || hovered;
-
   return (
     <div
-      onMouseDown={handleMouseDown}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseDown={onDown}
       style={{
-        width: 16,
-        marginLeft: -8,
-        marginRight: -8,
-        cursor: 'col-resize',
+        width: 4,
         flexShrink: 0,
-        zIndex: 20,
-        display: 'flex',
-        alignItems: 'stretch',
-        justifyContent: 'center',
+        cursor: 'col-resize',
+        background: active ? '#007ACC' : 'rgba(255,255,255,.06)',
       }}
-    >
-      <div style={{
-        width: 2,
-        background: showLine ? '#007ACC' : 'transparent',
-        transition: dragging ? 'none' : 'background .12s',
-      }} />
-    </div>
+      onMouseEnter={e => { e.currentTarget.style.background = '#007ACC'; }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,.06)'; }}
+    />
   );
 }
-
-
