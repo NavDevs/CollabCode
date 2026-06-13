@@ -151,6 +151,29 @@ export default function EditorPage() {
   const [explorerWidth, setExplorerWidth] = useState(240);
   const [chatWidth, setChatWidth] = useState(280);
 
+  // Drag utility for resizable panels
+  const startDrag = useCallback((e, onDrag) => {
+    e.preventDefault();
+    let last = e.clientX;
+    const el = e.currentTarget;
+    el.style.background = '#007ACC';
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    const move = (ev) => {
+      const dx = ev.clientX - last;
+      last = ev.clientX;
+      if (dx !== 0) onDrag(dx);
+    };
+    const up = () => {
+      el.style.background = 'transparent';
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }, []);
 
 
   const editorRef    = useRef(null);   // exposes getValue()
@@ -522,8 +545,7 @@ export default function EditorPage() {
         <main style={{ display:'flex',flex:1,overflow:'hidden',height:'100%',minWidth:0 }}>
 
           {showExplorer && (
-            <>
-              <aside style={{ width: explorerWidth, minWidth: 160, maxWidth: 500, flexShrink:0, display:'flex', flexDirection:'column', background:'rgba(5,5,12,.98)', borderRight:'none' }}>
+              <aside style={{ width: explorerWidth, minWidth: 160, maxWidth: 500, flexShrink:0, display:'flex', flexDirection:'column', background:'rgba(5,5,12,.98)', borderRight:'none', position:'relative' }}>
                 {activeTab === 'explorer' && (
                   <FileTree
                     roomId={roomId}
@@ -541,9 +563,18 @@ export default function EditorPage() {
                     onImportComplete={() => setFileTreeRefresh(r => r + 1)} 
                   />
                 )}
+                {/* Right-edge drag handle */}
+                <div
+                  onMouseDown={e => startDrag(e, (dx) => setExplorerWidth(w => Math.max(160, Math.min(500, w + dx))))}
+                  style={{
+                    position:'absolute', top:0, bottom:0, right:0, width:6,
+                    cursor:'col-resize', zIndex:30,
+                    background:'transparent',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background='#007ACC'}
+                  onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                />
               </aside>
-              <DragBar onDrag={(dx) => setExplorerWidth(w => Math.max(160, Math.min(500, w + dx)))} />
-            </>
           )}
 
           {/* ── Editor + Terminal column ── */}
@@ -665,12 +696,20 @@ export default function EditorPage() {
 
           {/* Chat panel with resize */}
           {showChat && (
-            <>
-              <DragBar onDrag={(dx) => setChatWidth(w => Math.max(220, Math.min(450, w - dx)))} />
-              <div style={{ width: chatWidth, flexShrink: 0, height: '100%', overflow: 'hidden' }}>
+              <div style={{ width: chatWidth, flexShrink: 0, height: '100%', overflow: 'hidden', position:'relative' }}>
+                {/* Left-edge drag handle */}
+                <div
+                  onMouseDown={e => startDrag(e, (dx) => setChatWidth(w => Math.max(220, Math.min(450, w - dx))))}
+                  style={{
+                    position:'absolute', top:0, bottom:0, left:0, width:6,
+                    cursor:'col-resize', zIndex:30,
+                    background:'transparent',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background='#007ACC'}
+                  onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                />
                 <ChatPanel roomId={roomId} socket={socket} user={user} users={users} />
               </div>
-            </>
           )}
         </main>
       </div>
@@ -727,51 +766,5 @@ function ExItem({ icon, label, color, active, indent=0 }) {
         {label}
       </span>
     </div>
-  );
-}
-
-function DragBar({ onDrag }) {
-  const cbRef = useRef(onDrag);
-  cbRef.current = onDrag;
-  const [active, setActive] = useState(false);
-
-  const onDown = useCallback((e) => {
-    e.preventDefault();
-    setActive(true);
-    let last = e.clientX;
-    const move = (ev) => {
-      const dx = ev.clientX - last;
-      last = ev.clientX;
-      if (dx !== 0) cbRef.current(dx);
-    };
-    const up = () => {
-      setActive(false);
-      window.removeEventListener('mousemove', move);
-      window.removeEventListener('mouseup', up);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-    window.addEventListener('mousemove', move);
-    window.addEventListener('mouseup', up);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, []);
-
-  return (
-    <div
-      onMouseDown={onDown}
-      style={{
-        width: 5,
-        minWidth: 5,
-        flexShrink: 0,
-        alignSelf: 'stretch',
-        cursor: 'col-resize',
-        background: active ? '#007ACC' : 'rgba(255,255,255,.08)',
-        transition: active ? 'none' : 'background .15s',
-        zIndex: 5,
-      }}
-      onMouseEnter={e => { e.currentTarget.style.background = '#007ACC'; }}
-      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,.08)'; }}
-    />
   );
 }
