@@ -18,8 +18,10 @@ const LANG = {
   rust:       { color: '#FB7185', bg: 'rgba(251,113,133,.12)', label: 'Rust'      },
   java:       { color: '#FBBF24', bg: 'rgba(251,191,36,.12)', label: 'Java'       },
   cpp:        { color: '#34D399', bg: 'rgba(52,211,153,.12)', label: 'C++'        },
+  c:          { color: '#A78BFA', bg: 'rgba(167,139,250,.12)', label: 'C'         },
   ruby:       { color: '#F43F5E', bg: 'rgba(244,63,94,.12)',  label: 'Ruby'       },
   php:        { color: '#818CF8', bg: 'rgba(129,140,248,.12)', label: 'PHP'       },
+  bash:       { color: '#4ADE80', bg: 'rgba(74,222,128,.12)', label: 'Bash/Shell' },
   sql:        { color: '#60A5FA', bg: 'rgba(96,165,250,.12)', label: 'SQL'        },
 };
 const BARS = [32, 55, 28, 72, 48, 90, 65];
