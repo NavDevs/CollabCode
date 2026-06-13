@@ -30,8 +30,7 @@ const gitConfig = {
 gitConfig.isConfigured = function isConfigured() {
   return Boolean(
     this.clientId &&
-      this.clientSecret &&
-      this.webhookSecret
+      this.clientSecret
   );
 };
 
