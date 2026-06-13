@@ -30,19 +30,11 @@ RUN cd client && npm install --include=dev
 # Copy the rest of the source code
 COPY . .
 
-# Write VITE_ env vars to client/.env and build the frontend
-RUN node -e "\
-  const fs=require('fs');\
-  const vars=Object.entries(process.env)\
-    .filter(([k])=>k.startsWith('VITE_'))\
-    .map(([k,v])=>k+'='+v).join('\n');\
-  fs.writeFileSync('./client/.env',vars);\
-  console.log('Wrote',vars.split('\n').length,'VITE_ vars to client/.env');"
-
-RUN cd client && npm run build
+# Make start script executable
+RUN chmod +x start.sh
 
 # Expose the server port
 EXPOSE 5000
 
-# Start the server
-CMD ["node", "server/index.js"]
+# Start: write env vars → build client → start server
+CMD ["bash", "./start.sh"]
