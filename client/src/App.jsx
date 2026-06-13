@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { SettingsProvider } from './context/SettingsContext';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -64,7 +65,8 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <SocketProvider>
-          <AppRoutes />
+          <SettingsProvider>
+            <AppRoutes />
           <Toaster
             position="top-right"
             toastOptions={{
@@ -81,6 +83,7 @@ export default function App() {
               error:   { iconTheme: { primary: '#F43F5E', secondary: '#121224' } },
             }}
           />
+          </SettingsProvider>
         </SocketProvider>
       </AuthProvider>
     </BrowserRouter>

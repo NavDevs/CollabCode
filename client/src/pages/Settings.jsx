@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import toast from 'react-hot-toast';
 import SideNav from '../components/SideNav';
 import TopNav from '../components/TopNav';
 import Footer from '../components/Footer';
 
 const THEMES = [
-  { id: 'dark', label: 'Dark', bg: '#0A0A0A', fg: '#F3F4F6', accent: '#818CF8' },
-  { id: 'midnight', label: 'Midnight', bg: '#0F172A', fg: '#E2E8F0', accent: '#6366F1' },
+  { id: 'dark', label: 'Dark', bg: '#09090F', fg: '#E2E8F0', accent: '#C084FC' },
+  { id: 'midnight', label: 'Midnight', bg: '#0F172A', fg: '#E2E8F0', accent: '#818CF8' },
   { id: 'dracula', label: 'Dracula', bg: '#282A36', fg: '#F8F8F2', accent: '#BD93F9' },
 ];
 
@@ -17,19 +18,6 @@ const FONT_FAMILIES = [
   'JetBrains Mono', 'Fira Code', 'Source Code Pro', 'Cascadia Code', 'Consolas', 'Monaco',
 ];
 const TAB_SIZES = [2, 4, 8];
-
-const INP = {
-  background: 'rgba(0,0,0,.4)',
-  border: '1px solid rgba(255,255,255,.07)',
-  borderRadius: 9,
-  padding: '10px 14px',
-  fontSize: 13,
-  color: '#F1F5F9',
-  outline: 'none',
-  fontFamily: "'Inter', sans-serif",
-  transition: 'border-color .2s, box-shadow .2s',
-  width: '100%',
-};
 
 function Card({ children, style = {} }) {
   return (
@@ -97,32 +85,19 @@ function SettingRow({ label, sub, children }) {
 }
 
 export default function Settings() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
-
-  // Load settings from localStorage
-  const load = (key, def) => {
-    try { return JSON.parse(localStorage.getItem(`cc_${key}`)) ?? def; } catch { return def; }
-  };
-
-  const [fontSize, setFontSize] = useState(() => load('fontSize', 14));
-  const [fontFamily, setFontFamily] = useState(() => load('fontFamily', 'JetBrains Mono'));
-  const [tabSize, setTabSize] = useState(() => load('tabSize', 2));
-  const [wordWrap, setWordWrap] = useState(() => load('wordWrap', false));
-  const [minimap, setMinimap] = useState(() => load('minimap', true));
-  const [lineNumbers, setLineNumbers] = useState(() => load('lineNumbers', true));
-  const [autoSave, setAutoSave] = useState(() => load('autoSave', true));
-  const [theme, setTheme] = useState(() => load('theme', 'dark'));
-  const [notifications, setNotifications] = useState(() => load('notifications', true));
-  const [sound, setSound] = useState(() => load('sound', false));
-
-  const save = (key, val) => {
-    localStorage.setItem(`cc_${key}`, JSON.stringify(val));
-    toast.success('Setting saved');
-  };
+  const { settings, updateSetting } = useSettings();
 
   const selectStyle = {
-    ...INP,
+    background: 'rgba(0,0,0,.4)',
+    border: '1px solid rgba(255,255,255,.07)',
+    borderRadius: 9,
+    padding: '10px 14px',
+    fontSize: 13,
+    color: '#F1F5F9',
+    outline: 'none',
+    fontFamily: "'Inter', sans-serif",
     appearance: 'none',
     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%236B7280' stroke-width='1.5'/%3E%3C/svg%3E")`,
     backgroundRepeat: 'no-repeat',
@@ -130,7 +105,12 @@ export default function Settings() {
     paddingRight: 32,
     cursor: 'pointer',
     width: 'auto',
-    minWidth: 140,
+    minWidth: 150,
+  };
+
+  const set = (key, val) => {
+    updateSetting(key, val);
+    toast.success('Setting updated — applied instantly');
   };
 
   return (
@@ -143,7 +123,7 @@ export default function Settings() {
         <div className="scroll" style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
           <div style={{ maxWidth: 780, margin:'0 auto', padding:'36px 32px 64px' }}>
 
-            {/* ── Page Header ── */}
+            {/* Page Header */}
             <div style={{ marginBottom: 36 }}>
               <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'#4B5563', marginBottom:8 }}>Configuration</p>
               <h1 style={{ fontSize:28, fontWeight:800, letterSpacing:'-0.02em' }}>
@@ -151,7 +131,7 @@ export default function Settings() {
                 <span className="gtext">Settings</span>
               </h1>
               <p style={{ marginTop:6, fontSize:14, color:'#4B5563' }}>
-                Customize your editor experience. Changes apply across all rooms.
+                Customize your editor experience. All changes apply <strong style={{ color:'#818CF8' }}>instantly</strong> across every room.
               </p>
             </div>
 
@@ -160,52 +140,52 @@ export default function Settings() {
               <SectionTitle icon="code" title="Editor" sub="Customize your coding environment" />
 
               <SettingRow label="Font Size" sub="Size of text in the code editor">
-                <select value={fontSize} onChange={e => { const v = +e.target.value; setFontSize(v); save('fontSize', v); }} style={selectStyle}>
+                <select value={settings.fontSize} onChange={e => set('fontSize', +e.target.value)} style={selectStyle}>
                   {FONT_SIZES.map(s => <option key={s} value={s}>{s}px</option>)}
                 </select>
               </SettingRow>
 
               <SettingRow label="Font Family" sub="Monospace font for code">
-                <select value={fontFamily} onChange={e => { setFontFamily(e.target.value); save('fontFamily', e.target.value); }} style={selectStyle}>
+                <select value={settings.fontFamily} onChange={e => set('fontFamily', e.target.value)} style={selectStyle}>
                   {FONT_FAMILIES.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
               </SettingRow>
 
               <SettingRow label="Tab Size" sub="Number of spaces per tab">
-                <select value={tabSize} onChange={e => { const v = +e.target.value; setTabSize(v); save('tabSize', v); }} style={selectStyle}>
+                <select value={settings.tabSize} onChange={e => set('tabSize', +e.target.value)} style={selectStyle}>
                   {TAB_SIZES.map(s => <option key={s} value={s}>{s} spaces</option>)}
                 </select>
               </SettingRow>
 
               <SettingRow label="Word Wrap" sub="Wrap long lines instead of horizontal scroll">
-                <Toggle checked={wordWrap} onChange={v => { setWordWrap(v); save('wordWrap', v); }} />
+                <Toggle checked={settings.wordWrap} onChange={v => set('wordWrap', v)} />
               </SettingRow>
 
               <SettingRow label="Minimap" sub="Show code minimap on the right side">
-                <Toggle checked={minimap} onChange={v => { setMinimap(v); save('minimap', v); }} />
+                <Toggle checked={settings.minimap} onChange={v => set('minimap', v)} />
               </SettingRow>
 
               <SettingRow label="Line Numbers" sub="Show line numbers in the gutter">
-                <Toggle checked={lineNumbers} onChange={v => { setLineNumbers(v); save('lineNumbers', v); }} />
+                <Toggle checked={settings.lineNumbers} onChange={v => set('lineNumbers', v)} />
               </SettingRow>
             </Card>
 
             {/* ── Theme ── */}
             <Card style={{ marginBottom: 20 }}>
-              <SectionTitle icon="palette" title="Appearance" sub="Choose your editor theme" />
+              <SectionTitle icon="palette" title="Appearance" sub="Choose your editor theme — applied instantly" />
 
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {THEMES.map(t => (
                   <button
                     key={t.id}
-                    onClick={() => { setTheme(t.id); save('theme', t.id); }}
+                    onClick={() => set('theme', t.id)}
                     style={{
                       flex: '1 1 140px', maxWidth: 200,
                       padding: 16, borderRadius: 12, cursor: 'pointer',
                       background: t.bg,
-                      border: theme === t.id ? `2px solid ${t.accent}` : '2px solid rgba(255,255,255,.08)',
+                      border: settings.theme === t.id ? `2px solid ${t.accent}` : '2px solid rgba(255,255,255,.08)',
                       transition: 'all .2s',
-                      outline: theme === t.id ? `2px solid ${t.accent}40` : 'none',
+                      outline: settings.theme === t.id ? `2px solid ${t.accent}40` : 'none',
                       outlineOffset: 2,
                     }}
                   >
@@ -228,15 +208,15 @@ export default function Settings() {
               <SectionTitle icon="tune" title="General" sub="App-wide preferences" />
 
               <SettingRow label="Auto Save" sub="Automatically save changes as you type">
-                <Toggle checked={autoSave} onChange={v => { setAutoSave(v); save('autoSave', v); }} />
+                <Toggle checked={settings.autoSave} onChange={v => set('autoSave', v)} />
               </SettingRow>
 
               <SettingRow label="Notifications" sub="Show desktop notifications for collaborator actions">
-                <Toggle checked={notifications} onChange={v => { setNotifications(v); save('notifications', v); }} />
+                <Toggle checked={settings.notifications} onChange={v => set('notifications', v)} />
               </SettingRow>
 
               <SettingRow label="Sound Effects" sub="Play sounds for events like join/leave">
-                <Toggle checked={sound} onChange={v => { setSound(v); save('sound', v); }} />
+                <Toggle checked={settings.sound} onChange={v => set('sound', v)} />
               </SettingRow>
             </Card>
 
@@ -275,29 +255,27 @@ export default function Settings() {
             {/* ── Danger Zone ── */}
             <Card style={{ borderColor: 'rgba(239,68,68,.2)' }}>
               <SectionTitle icon="warning" title="Danger Zone" sub="Irreversible account actions" />
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <button
-                  onClick={async () => {
-                    if (window.confirm('Are you sure? This will log you out.')) {
-                      await logout();
-                      toast.success('Logged out.');
-                      navigate('/login');
-                    }
-                  }}
-                  style={{
-                    display:'flex', alignItems:'center', gap:6,
-                    padding:'9px 18px', borderRadius:9,
-                    background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)',
-                    color:'#F87171', fontSize:13, fontWeight:600,
-                    cursor:'pointer', transition:'all .15s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background='rgba(239,68,68,.2)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background='rgba(239,68,68,.1)'; }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize:16 }}>logout</span>
-                  Sign Out
-                </button>
-              </div>
+              <button
+                onClick={async () => {
+                  if (window.confirm('Are you sure? This will log you out.')) {
+                    await logout();
+                    toast.success('Logged out.');
+                    navigate('/login');
+                  }
+                }}
+                style={{
+                  display:'flex', alignItems:'center', gap:6,
+                  padding:'9px 18px', borderRadius:9,
+                  background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)',
+                  color:'#F87171', fontSize:13, fontWeight:600,
+                  cursor:'pointer', transition:'all .15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background='rgba(239,68,68,.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='rgba(239,68,68,.1)'; }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize:16 }}>logout</span>
+                Sign Out
+              </button>
             </Card>
 
           </div>

@@ -105,6 +105,7 @@ const getUserRooms = async (req, res) => {
       isActive: true,
     })
       .populate('ownerId', 'username avatarColor')
+      .populate('participants', 'username avatarColor')
       .sort({ createdAt: -1 });
 
     return res.status(200).json({ rooms });
