@@ -281,10 +281,42 @@ export default function EditorPage() {
     if (!socket || !connected || !roomId) return;
     joinRoom(roomId);
 
-    socket.on('room-users',     list => setUsers(list));
-    socket.on('user-joined',    u => { setUsers(p=>[...p.filter(x=>x.userId!==u.userId),u]); toast.success(`${u.username} joined`); });
-    socket.on('user-left',      u => { setUsers(p=>p.filter(x=>x.userId!==u.userId)); setCursors(p=>{const n={...p};delete n[u.userId];return n;}); toast(`${u.username} left`,{icon:'👋'}); });
-    socket.on('cursor-updated', ({ userId, username, avatarColor, cursor }) => setCursors(p=>({...p,[userId]:{username,avatarColor,cursor}})));
+    // Authoritative full list — server sends this on every join/leave/disconnect
+    socket.on('room-users', list => {
+      // Deduplicate by userId (in case of reconnects)
+      const unique = [];
+      const seen = new Set();
+      for (const u of list) {
+        if (!seen.has(u.userId)) {
+          seen.add(u.userId);
+          unique.push(u);
+        }
+      }
+      setUsers(unique);
+    });
+
+    // Individual join — show toast (server also sends room-users after this)
+    socket.on('user-joined', u => {
+      if (u.userId !== user?._id) {
+        toast.success(`${u.username} joined`, { id: `join-${u.userId}` });
+      }
+    });
+
+    // Individual leave — cleanup cursors, show toast (server also sends room-users after this)
+    socket.on('user-left', u => {
+      setCursors(prev => {
+        const next = { ...prev };
+        delete next[u.userId];
+        return next;
+      });
+      if (u.userId !== user?._id) {
+        toast(`${u.username} left`, { icon: '👋', id: `leave-${u.userId}` });
+      }
+    });
+
+    socket.on('cursor-updated', ({ userId, username, avatarColor, cursor }) =>
+      setCursors(p => ({ ...p, [userId]: { username, avatarColor, cursor } }))
+    );
 
     /* Execution events */
     socket.on('exec-start', () => { setRunning(true); setShowTerminal(true); });

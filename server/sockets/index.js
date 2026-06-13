@@ -66,10 +66,14 @@ const setupSocket = (io) => {
             roomUsers.delete(socket.id);
 
             // Broadcast user-left to the room
-            socket.to(roomId).emit('user-left', {
+            io.in(roomId).emit('user-left', {
               userId: socket.user._id.toString(),
               username: socket.user.username,
             });
+
+            // Broadcast updated full list so everyone stays in sync
+            const usersList = Array.from(roomUsers.values());
+            io.in(roomId).emit('room-users', usersList);
 
             // If room is now empty, clean up Yjs doc
             if (roomUsers.size === 0) {

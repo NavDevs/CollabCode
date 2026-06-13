@@ -33,9 +33,9 @@ const registerRoomHandler = (io, socket) => {
         avatarColor: socket.user.avatarColor,
       });
 
-      // Send the full list of connected users to the joiner
+      // Send the full list of connected users to ALL clients in the room
       const usersList = Array.from(roomUsers.values());
-      socket.emit('room-users', usersList);
+      io.in(roomId).emit('room-users', usersList);
 
       // Notify the joiner themselves
       notify(io, {
@@ -75,6 +75,16 @@ const registerRoomHandler = (io, socket) => {
           roomId,
         });
 
+        // Broadcast user-left
+        socket.to(roomId).emit('user-left', {
+          userId: socket.user._id.toString(),
+          username: socket.user.username,
+        });
+
+        // Broadcast updated full list to everyone remaining
+        const usersList = Array.from(roomUsers.values());
+        io.in(roomId).emit('room-users', usersList);
+
         // Clean up empty rooms
         if (roomUsers.size === 0) {
           connectedUsers.delete(roomId);
@@ -85,12 +95,6 @@ const registerRoomHandler = (io, socket) => {
       if (socket.rooms_joined) {
         socket.rooms_joined.delete(roomId);
       }
-
-      // Broadcast to others
-      socket.to(roomId).emit('user-left', {
-        userId: socket.user._id.toString(),
-        username: socket.user.username,
-      });
     } catch (error) {
       console.error('leave-room error:', error.message);
     }
