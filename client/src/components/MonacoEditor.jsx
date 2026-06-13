@@ -1,6 +1,7 @@
 import MonacoEditor from '@monaco-editor/react';
-import { useRef, forwardRef, useImperativeHandle } from 'react';
+import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useSettings } from '../context/SettingsContext';
+import { useInstalledExtensions, applyExtensions } from '../utils/extensions';
 
 const LANG_MAP = {
   javascript: 'javascript', typescript: 'typescript', python: 'python',
@@ -129,6 +130,8 @@ const Editor = forwardRef(function Editor({ value, language, onChange, onCursorC
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const { settings } = useSettings();
+  const installedExtensions = useInstalledExtensions();
+  const extCleanupRef = useRef(null);
 
   // Expose getValue() to parent via ref
   useImperativeHandle(ref, () => ({
@@ -152,7 +155,26 @@ const Editor = forwardRef(function Editor({ value, language, onChange, onCursorC
 
     // Apply the user's selected theme
     monaco.editor.setTheme(`collabcode-${settings.theme || 'dark'}`);
+
+    // Apply installed extensions
+    extCleanupRef.current = applyExtensions(editor, monaco, installedExtensions);
   };
+
+  // Re-apply extensions when installed list changes
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+    // Clean up previous extension instances
+    if (extCleanupRef.current) {
+      extCleanupRef.current();
+    }
+    extCleanupRef.current = applyExtensions(editorRef.current, monacoRef.current, installedExtensions);
+    return () => {
+      if (extCleanupRef.current) {
+        extCleanupRef.current();
+        extCleanupRef.current = null;
+      }
+    };
+  }, [installedExtensions]);
 
   // Update editor options when settings change
   const prevSettings = useRef(settings);

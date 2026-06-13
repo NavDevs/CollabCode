@@ -86,3 +86,11 @@ body {
   animation: shimmer 1.6s infinite linear;
   border-radius: 6px;
 }
+
+/* GitLens extension — inline blame decoration */
+.gitlens-inline-blame {
+  color: rgba(255,255,255,.25) !important;
+  font-style: italic;
+  font-size: 11px;
+  pointer-events: none;
+}
