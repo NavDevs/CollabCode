@@ -347,8 +347,25 @@ export default function EditorPage() {
     socket.on('exec-start', () => { setRunning(true); setShowTerminal(true); });
     socket.on('exec-done',  () => setRunning(false));
 
+    /* Workspace file changes from other members */
+    socket.on('workspace-updated', ({ action, username, repoFullName, filesImported }) => {
+      // Refresh the file tree
+      setFileTreeRefresh(r => r + 1);
+
+      // Show contextual toast
+      if (action === 'import') {
+        toast.success(`${username} imported ${repoFullName} (${filesImported} files)`, { icon: '📦', id: 'ws-import' });
+      } else if (action === 'create') {
+        toast.success(`${username} created a new file`, { icon: '📄', id: 'ws-create' });
+      } else if (action === 'delete') {
+        toast(`${username} deleted a file`, { icon: '🗑️', id: 'ws-delete' });
+      } else if (action === 'rename') {
+        toast.success(`${username} renamed a file`, { icon: '✏️', id: 'ws-rename' });
+      }
+    });
+
     return () => {
-      ['room-users','user-joined','user-left','cursor-updated','exec-start','exec-done']
+      ['room-users','user-joined','user-left','cursor-updated','exec-start','exec-done','workspace-updated']
         .forEach(e => socket.off(e));
     };
   }, [socket, connected, roomId]);

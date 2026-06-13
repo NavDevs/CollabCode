@@ -301,6 +301,21 @@ router.post('/room/:roomId/import', auth, async (req, res) => {
     room.githubRepo = repoFullName;
     await room.save();
 
+    // Broadcast to all room members so their file trees refresh
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.in(roomId).emit('workspace-updated', {
+          action: 'import',
+          roomId,
+          username: req.user?.username || 'Unknown',
+          repoFullName,
+          timestamp: Date.now(),
+          filesImported: result?.imported || 0,
+        });
+      }
+    } catch (e) { /* ignore */ }
+
     return res.status(200).json({ message: 'Repository imported successfully', result, room });
   } catch (error) {
     console.error('GitHub import error:', error);

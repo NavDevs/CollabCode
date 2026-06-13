@@ -24,6 +24,24 @@ const getDefaultFile = (language) => {
   return DEFAULT_FILES[language] || DEFAULT_FILES.javascript;
 };
 
+// Helper: broadcast workspace-updated to all clients in the room
+const broadcastWorkspaceUpdate = (req, roomId, action, details = {}) => {
+  try {
+    const io = req.app.get('io');
+    if (io) {
+      io.in(roomId).emit('workspace-updated', {
+        action, // 'create', 'delete', 'rename', 'import', 'content-update'
+        roomId,
+        username: req.user?.username || 'Unknown',
+        timestamp: Date.now(),
+        ...details,
+      });
+    }
+  } catch (err) {
+    console.error('broadcastWorkspaceUpdate error:', err.message);
+  }
+};
+
 // GET /api/workspaces/:roomId/files — list all files in a workspace
 const getFiles = async (req, res) => {
   try {
@@ -79,6 +97,9 @@ const createFile = async (req, res) => {
     const fileObj = file.toObject();
     delete fileObj.yjsState;
 
+    // Broadcast to all room members
+    broadcastWorkspaceUpdate(req, roomId, 'create', { path, name });
+
     return res.status(201).json({ file: fileObj });
   } catch (error) {
     console.error('createFile error:', error.message);
@@ -112,6 +133,9 @@ const renameFile = async (req, res) => {
     const fileObj = file.toObject();
     delete fileObj.yjsState;
 
+    // Broadcast to all room members
+    broadcastWorkspaceUpdate(req, roomId, 'rename', { oldPath, newPath, newName });
+
     return res.json({ file: fileObj });
   } catch (error) {
     console.error('renameFile error:', error.message);
@@ -133,6 +157,9 @@ const deleteFile = async (req, res) => {
 
     // Cleanup Yjs memory
     await yjsService.cleanupFileDoc(roomId, path);
+
+    // Broadcast to all room members
+    broadcastWorkspaceUpdate(req, roomId, 'delete', { path });
 
     return res.json({ message: 'File deleted.' });
   } catch (error) {
@@ -179,4 +206,4 @@ const previewFile = async (req, res) => {
   }
 };
 
-module.exports = { getFiles, createFile, renameFile, deleteFile, previewFile };
+module.exports = { getFiles, createFile, renameFile, deleteFile, previewFile, broadcastWorkspaceUpdate };

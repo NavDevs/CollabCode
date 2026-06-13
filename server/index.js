@@ -193,6 +193,9 @@ const io = new Server(server, {
 // Initialize socket handlers
 setupSocket(io);
 
+// Make io accessible from routes via req.app.get('io')
+app.set('io', io);
+
 // Start server
 const PORT = process.env.PORT || 5000;
 
