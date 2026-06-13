@@ -245,6 +245,19 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
         <div style={{ display: 'flex', alignItems: 'center', gap: 2, paddingRight: 8 }}>
           <button
             onClick={() => {
+              if (socketRef.current) {
+                socketRef.current.emit('terminal-sync');
+              }
+            }}
+            style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#858585', cursor: 'pointer', borderRadius: 4 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            title="Sync Files to Disk"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>sync</span>
+          </button>
+          <button
+            onClick={() => {
               xtermRef.current?.clear();
             }}
             style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#858585', cursor: 'pointer', borderRadius: 4 }}

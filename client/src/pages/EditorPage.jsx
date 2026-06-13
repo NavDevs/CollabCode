@@ -266,7 +266,11 @@ export default function EditorPage() {
     const code = editorRef.current?.getValue() ?? '';
     if (!code.trim()) { toast.error('Nothing to run.'); return; }
     setShowTerminal(true);
-    socket.emit('code-execute', { roomId, path: activePath, language: getLangFromPath(activePath) });
+    // Sync latest files to disk before running
+    socket.emit('terminal-sync');
+    setTimeout(() => {
+      socket.emit('code-execute', { roomId, path: activePath, language: getLangFromPath(activePath) });
+    }, 300);
   }, [running, socket, connected, roomId, room, activePath]);
 
   /* ── Keyboard shortcut: Ctrl+Enter / Cmd+Enter ── */

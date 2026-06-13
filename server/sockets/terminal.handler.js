@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const WorkspaceFile = require('../models/WorkspaceFile');
 
-// Store active terminal sessions: Map<socketId, { process, roomId }>
+// Store active terminal sessions: Map<socketId, { process, roomId, workDir }>
 const terminalSessions = new Map();
 
 // Detect port patterns in terminal output
@@ -22,8 +22,31 @@ async function syncFilesToDisk(roomId, workDir) {
       fs.writeFileSync(absPath, file.content || '', 'utf8');
     }
     console.log(`📂 Synced ${files.length} files to ${workDir}`);
+    return files.length;
   } catch (err) {
     console.error('[terminal] Failed to sync files:', err.message);
+    return 0;
+  }
+}
+
+// Save changed files back from disk to MongoDB
+async function syncFilesFromDisk(roomId, workDir) {
+  try {
+    const files = await WorkspaceFile.find({ roomId });
+    for (const file of files) {
+      const relativePath = file.path.startsWith('/') ? file.path.slice(1) : file.path;
+      const absPath = path.join(workDir, relativePath);
+      if (fs.existsSync(absPath)) {
+        const diskContent = fs.readFileSync(absPath, 'utf8');
+        if (diskContent !== file.content) {
+          file.content = diskContent;
+          file.updatedAt = new Date();
+          await file.save();
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[terminal] Failed to sync files from disk:', err.message);
   }
 }
 
@@ -47,15 +70,25 @@ function registerTerminalHandler(io, socket) {
     } catch {}
 
     // Sync workspace files from DB to disk
-    await syncFilesToDisk(roomId, workDir);
+    const fileCount = await syncFilesToDisk(roomId, workDir);
 
-    // Create a .bashrc for command history and prompt
+    // Create a .bashrc with VS Code-like prompt, PATH, and auto-sync
     const bashrc = `
-export PS1='\\033[1;32mcollabcode\\033[0m:\\033[1;34m\\w\\033[0m$ '
-export HISTSIZE=1000
-export HISTFILESIZE=2000
+# CollabCode Shell Configuration
+export PS1='\\[\\033[1;32m\\]collabcode\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]\\$ '
+export HISTSIZE=5000
+export HISTFILESIZE=10000
 export HISTFILE="${workDir}/.bash_history"
 shopt -s histappend
+
+# Aliases for convenience
+alias ll='ls -la --color=auto'
+alias la='ls -A --color=auto'
+alias l='ls -CF --color=auto'
+alias cls='clear'
+
+# Node/Python path
+export NODE_PATH="${workDir}/node_modules"
 `;
     fs.writeFileSync(path.join(workDir, '.bashrc'), bashrc, 'utf8');
 
@@ -69,12 +102,15 @@ shopt -s histappend
           HOME: workDir,
           PATH: process.env.PATH,
           LANG: 'en_US.UTF-8',
+          SHELL: '/bin/bash',
+          EDITOR: 'nano',
+          COLORTERM: 'truecolor',
         },
       });
 
       const detectedPorts = new Set();
       let portClearTimer = null;
-      terminalSessions.set(socket.id, { process: proc, roomId });
+      terminalSessions.set(socket.id, { process: proc, roomId, workDir });
 
       // Stream stdout to client and detect server ports
       proc.stdout.on('data', (data) => {
@@ -99,7 +135,6 @@ shopt -s histappend
             detectedPorts.add(port);
             const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
             socket.emit('terminal-output', `\r\n\x1b[1;36m🌐 Live Preview: \x1b[4m${proxyUrl}\x1b[0m\r\n`);
-            // Auto-clear this port after 5s so re-running shows the link again
             clearTimeout(portClearTimer);
             portClearTimer = setTimeout(() => detectedPorts.delete(port), 5000);
           }
@@ -123,6 +158,8 @@ shopt -s histappend
 
       // Handle process exit
       proc.on('close', (code) => {
+        // Sync files from disk back to DB on session end
+        syncFilesFromDisk(roomId, workDir).catch(() => {});
         socket.emit('terminal-output', `\r\n\x1b[90m[Session ended]\x1b[0m\r\n`);
         terminalSessions.delete(socket.id);
       });
@@ -133,11 +170,20 @@ shopt -s histappend
       });
 
       socket.emit('terminal-ready');
-      console.log(`📟 Terminal started for ${socket.user.username} in room ${roomId}`);
+      console.log(`📟 Terminal started for ${socket.user.username} in room ${roomId} (${fileCount} files synced)`);
 
     } catch (err) {
       console.error('[terminal] Failed to start shell:', err.message);
       socket.emit('terminal-output', `\x1b[31mFailed to start terminal: ${err.message}\x1b[0m\r\n`);
+    }
+  });
+
+  // Re-sync files from DB to disk (called before Run or manually)
+  socket.on('terminal-sync', async () => {
+    const session = terminalSessions.get(socket.id);
+    if (session) {
+      const count = await syncFilesToDisk(session.roomId, session.workDir);
+      socket.emit('terminal-output', `\x1b[90m[Synced ${count} files]\x1b[0m\r\n`);
     }
   });
 
@@ -155,13 +201,15 @@ shopt -s histappend
 
   // Resize terminal
   socket.on('terminal-resize', ({ cols, rows }) => {
-    // Resize not supported without node-pty
+    // Resize not fully supported without node-pty, but the shell adapts to initial fit
   });
 
   // Kill terminal
   socket.on('terminal-kill', () => {
     const session = terminalSessions.get(socket.id);
     if (session) {
+      // Sync files back before killing
+      syncFilesFromDisk(session.roomId, session.workDir).catch(() => {});
       try { session.process.kill('SIGKILL'); } catch {}
       terminalSessions.delete(socket.id);
       console.log(`📟 Terminal killed for ${socket.user.username}`);
@@ -172,6 +220,7 @@ shopt -s histappend
   socket.on('disconnect', () => {
     const session = terminalSessions.get(socket.id);
     if (session) {
+      syncFilesFromDisk(session.roomId, session.workDir).catch(() => {});
       try { session.process.kill('SIGKILL'); } catch {}
       terminalSessions.delete(socket.id);
     }
