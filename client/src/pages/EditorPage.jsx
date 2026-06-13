@@ -761,13 +761,17 @@ function DragBar({ onDrag }) {
     <div
       onMouseDown={onDown}
       style={{
-        width: 4,
+        width: 5,
+        minWidth: 5,
         flexShrink: 0,
+        alignSelf: 'stretch',
         cursor: 'col-resize',
-        background: active ? '#007ACC' : 'rgba(255,255,255,.06)',
+        background: active ? '#007ACC' : 'rgba(255,255,255,.08)',
+        transition: active ? 'none' : 'background .15s',
+        zIndex: 5,
       }}
       onMouseEnter={e => { e.currentTarget.style.background = '#007ACC'; }}
-      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,.06)'; }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,.08)'; }}
     />
   );
 }
