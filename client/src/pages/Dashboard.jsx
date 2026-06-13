@@ -276,8 +276,19 @@ export default function Dashboard() {
                   flexDirection: viewMode === 'list' ? 'column' : 'row',
                   gap: 16 
                 }}>
-                  {filtered.map(room => {
-                    const m = { color:'#D1D5DB', bg:'rgba(255,255,255,.12)', label:'Full Stack' };
+                  {filtered.map((room, idx) => {
+                    const colors = [
+                      { color:'#8B5CF6', bg:'rgba(139,92,246,.12)' },
+                      { color:'#06B6D4', bg:'rgba(6,182,212,.12)' },
+                      { color:'#F59E0B', bg:'rgba(245,158,11,.12)' },
+                      { color:'#10B981', bg:'rgba(16,185,129,.12)' },
+                      { color:'#EC4899', bg:'rgba(236,72,153,.12)' },
+                      { color:'#3B82F6', bg:'rgba(59,130,246,.12)' },
+                      { color:'#F97316', bg:'rgba(249,115,22,.12)' },
+                      { color:'#14B8A6', bg:'rgba(20,184,166,.12)' },
+                    ];
+                    const c = colors[idx % colors.length];
+                    const m = { ...c, label:'Full Stack' };
                     return <RoomCard key={room.roomId} room={room} meta={m} viewMode={viewMode} currentUserId={user?._id} onDelete={deleteRoom} onClick={() => navigate(`/editor/${room.roomId}`)} />;
                   })}
                 </div>
