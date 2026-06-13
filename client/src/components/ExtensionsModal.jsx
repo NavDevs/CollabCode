@@ -20,6 +20,8 @@ export default function ExtensionsModal({ onClose }) {
 
   useEffect(() => {
     localStorage.setItem('collab_extensions', JSON.stringify(installed));
+    // Notify Footer and other components in the same tab
+    window.dispatchEvent(new Event('extensions-changed'));
   }, [installed]);
 
   useEffect(() => {

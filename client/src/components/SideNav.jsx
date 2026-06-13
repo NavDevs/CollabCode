@@ -84,6 +84,7 @@ export default function SideNav({ activeTab, setActiveTab, showChat, setShowChat
         { type: 'link', icon: 'grid_view', label: 'Dashboard', to: '/dashboard' },
         { type: 'tab', icon: 'folder', label: 'Explorer', tabId: 'explorer' },
         { type: 'tab', icon: 'account_tree', label: 'Source Control', tabId: 'github' },
+        { type: 'modal', icon: 'extension', label: 'Extensions', action: () => setShowExt(true) },
       ]
     : [
         { type: 'link', icon: 'grid_view', label: 'Dashboard', to: '/dashboard' },
