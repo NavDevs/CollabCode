@@ -94,19 +94,47 @@ app.use('/api/proxy/:port', (req, res) => {
 
   const http = require('http');
   const targetPath = req.url || '/';
+  const proxyBase = `/api/proxy/${port}`;
   const options = {
     hostname: '127.0.0.1',
     port,
     path: targetPath,
     method: req.method,
     headers: { ...req.headers, host: `127.0.0.1:${port}` },
-    timeout: 10000,
+    timeout: 15000,
   };
 
   const proxyReq = http.request(options, (proxyRes) => {
-    // Ensure UTF-8 charset for text responses so emojis render correctly
     const headers = { ...proxyRes.headers };
     const contentType = headers['content-type'] || '';
+
+    // For HTML responses, inject <base> tag so relative URLs work through proxy
+    if (contentType.includes('text/html')) {
+      let body = '';
+      proxyRes.setEncoding('utf8');
+      proxyRes.on('data', chunk => body += chunk);
+      proxyRes.on('end', () => {
+        // Inject <base> so fetch('/api/todos') → /api/proxy/3001/api/todos
+        const baseTag = `<base href="${proxyBase}/">`;
+        if (body.includes('<head>')) {
+          body = body.replace('<head>', `<head>${baseTag}`);
+        } else if (body.includes('<HEAD>')) {
+          body = body.replace('<HEAD>', `<HEAD>${baseTag}`);
+        } else {
+          body = baseTag + body;
+        }
+        if (!contentType.includes('charset')) {
+          headers['content-type'] = contentType + '; charset=utf-8';
+        }
+        delete headers['content-length'];
+        headers['content-length'] = Buffer.byteLength(body);
+        res.writeHead(proxyRes.statusCode, headers);
+        res.end(body);
+      });
+      return;
+    }
+
+    // Non-HTML: pipe directly
     if (contentType.includes('text/') && !contentType.includes('charset')) {
       headers['content-type'] = contentType + '; charset=utf-8';
     }
@@ -121,7 +149,7 @@ app.use('/api/proxy/:port', (req, res) => {
 
   proxyReq.on('error', () => {
     if (!res.headersSent) {
-      res.status(502).send(`<meta charset="utf-8"><h2>No server running on port ${port}</h2><p>Start a server in the terminal first, e.g.:<br><code>node main.js</code></p>`);
+      res.status(502).send(`<meta charset="utf-8"><h2>No server running on port ${port}</h2><p>Start a server in the terminal first, e.g.:<br><code>node server.js</code></p>`);
     }
   });
 

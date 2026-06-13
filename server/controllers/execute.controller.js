@@ -82,7 +82,7 @@ const LANG_CONFIG = {
   },
 };
 
-const TIMEOUT_MS = 15_000; // 15-second hard limit
+const TIMEOUT_MS = 120_000; // 120-second limit (allows web servers to run)
 
 const WorkspaceFile = require('../models/WorkspaceFile');
 const yjsService = require('../services/yjs.service');

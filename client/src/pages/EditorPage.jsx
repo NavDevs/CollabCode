@@ -159,44 +159,58 @@ export default function EditorPage() {
 
 
 
+  /* ── File content cache to avoid blank flash on switch ── */
+  const fileCacheRef = useRef({});
+
   /* ── Socket setup for Yjs (runs on activePath change) ── */
   useEffect(() => {
     if (!socket || !connected || !roomId || !activePath) return;
 
-    // Reset code immediately so old file content doesn't bleed into new file
-    setCode('');
+    // Show cached content instantly (no blank flash)
+    if (fileCacheRef.current[activePath] !== undefined) {
+      setCode(fileCacheRef.current[activePath]);
+    } else {
+      setCode(''); // Only blank for truly new files
+    }
 
     // We join the room globally elsewhere, but this hook handles file-specific sync
     const ydoc = new Y.Doc();
     ydocRef.current = ydoc;
     const ytext = ydoc.getText('monaco');
+    let cancelled = false;
 
-    // Load content from DB first (in case Yjs state is empty for new files)
+    // Load content from DB (fast — shows content before Yjs sync arrives)
     api.get(`/workspaces/${roomId}/files`).then(({ data }) => {
+      if (cancelled) return;
       const file = (data.files || []).find(f => f.path === activePath);
       if (file && file.content && !ytext.toString()) {
         setCode(file.content);
+        fileCacheRef.current[activePath] = file.content;
       }
     }).catch(() => {});
 
     socket.emit('yjs-sync-request', { roomId, path: activePath });
 
     const handleSyncInit = ({ roomId: r, path: p, state }) => {
-      if (r !== roomId || p !== activePath) return;
+      if (r !== roomId || p !== activePath || cancelled) return;
       if (state && state.length > 0) {
         isRemoteRef.current = true;
         Y.applyUpdate(ydoc, new Uint8Array(state));
-        setCode(ytext.toString());
+        const content = ytext.toString();
+        setCode(content);
+        fileCacheRef.current[activePath] = content;
         isRemoteRef.current = false;
       }
     };
 
     const handleUpdate = ({ roomId: r, path: p, update }) => {
-      if (r !== roomId || p !== activePath) return;
+      if (r !== roomId || p !== activePath || cancelled) return;
       if (update) {
         isRemoteRef.current = true;
         Y.applyUpdate(ydoc, new Uint8Array(update));
-        setCode(ytext.toString());
+        const content = ytext.toString();
+        setCode(content);
+        fileCacheRef.current[activePath] = content;
         isRemoteRef.current = false;
       }
     };
@@ -205,6 +219,12 @@ export default function EditorPage() {
     socket.on('yjs-update', handleUpdate);
 
     return () => {
+      cancelled = true;
+      // Cache current content before leaving
+      const currentContent = editorRef.current?.getValue?.();
+      if (currentContent) {
+        fileCacheRef.current[activePath] = currentContent;
+      }
       socket.off('yjs-sync-init', handleSyncInit);
       socket.off('yjs-update', handleUpdate);
       ydoc.destroy();
@@ -540,6 +560,8 @@ export default function EditorPage() {
                   value={code}
                   onChange={val => {
                     setCode(val || '');
+                    // Update local cache
+                    if (activePath) fileCacheRef.current[activePath] = val || '';
                     // Broadcast change via Yjs if it's a local edit
                     if (!isRemoteRef.current && ydocRef.current && socket && connected && activePath) {
                       const ydoc = ydocRef.current;
@@ -551,7 +573,16 @@ export default function EditorPage() {
                       const update = Y.encodeStateAsUpdate(ydoc);
                       socket.emit('yjs-update', { roomId, path: activePath, update: Array.from(update) });
                     }
-
+                    // Debounced save to DB for persistence across refreshes
+                    if (activePath && roomId) {
+                      clearTimeout(window.__saveTimer);
+                      window.__saveTimer = setTimeout(() => {
+                        api.put(`/workspaces/${roomId}/files/content`, {
+                          path: activePath,
+                          content: val || '',
+                        }).catch(() => {});
+                      }, 1500);
+                    }
                   }}
                   onCursorChange={onCursor}
                 />
