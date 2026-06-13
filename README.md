@@ -4,7 +4,7 @@
 
 ### Build, Code, and Collaborate — All in Your Browser
 
-[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-collabcode--979z.onrender.com-059669?style=for-the-badge&logoColor=white)](https://collabcode-979z.onrender.com)
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-collabcode--ihw7.onrender.com-059669?style=for-the-badge&logoColor=white)](https://collabcode-ihw7.onrender.com)
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-v19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
@@ -20,7 +20,7 @@
 
 ## 🌐 Live Website
 
-### **[https://collabcode-979z.onrender.com](https://collabcode-979z.onrender.com)**
+### **[https://collabcode-ihw7.onrender.com](https://collabcode-ihw7.onrender.com)**
 
 > Sign up, create a room, share the link, and start coding together!
 
@@ -238,7 +238,7 @@ When you run a web server (e.g., `http.createServer`) in the terminal:
 ```
 Terminal: node main.js → "Server running on port 3001"
                               ↓ (auto-detected)
-Terminal shows: 🌐 Live Preview: https://collabcode-979z.onrender.com/api/proxy/3001
+Terminal shows: 🌐 Live Preview: https://collabcode-ihw7.onrender.com/api/proxy/3001
                               ↓
 Browser opens proxy URL → Express proxy → localhost:3001 on server
 ```
@@ -451,6 +451,6 @@ This project is built as a **College Project** for educational purposes.
 
 ### ⭐ Star this repo if you found it useful!
 
-**[🌐 Try CollabCode Live](https://collabcode-979z.onrender.com)**
+**[🌐 Try CollabCode Live](https://collabcode-ihw7.onrender.com)**
 
 </div>
