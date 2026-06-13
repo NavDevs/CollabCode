@@ -297,23 +297,21 @@ export default function Dashboard() {
             {/* ── Live Dashboard Bento ── */}
             <div style={{ marginTop: 44 }}>
               <p style={{ fontSize:11,fontWeight:600,letterSpacing:'.08em',textTransform:'uppercase',color:'#4B5563',marginBottom:16, display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ width:6, height:6, borderRadius:'50%', background:'#34D399', boxShadow:'0 0 8px #34D399', animation:'pulse-dot 2s ease infinite' }} />
+                <span style={{ width:6, height:6, borderRadius:'50%', background:'#D1D5DB', boxShadow:'0 0 8px rgba(209,213,219,.5)', animation:'pulse-dot 2s ease infinite' }} />
                 Live Dashboard
               </p>
               <style>{`
-                @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.7)} }
+                @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
                 @keyframes float-up { 0%{opacity:0;transform:translateY(12px)} 100%{opacity:1;transform:translateY(0)} }
-                @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-                @keyframes orbit { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-                @keyframes typing { 0%,100%{opacity:.3} 50%{opacity:1} }
+                @keyframes typing { 0%,100%{opacity:.2} 50%{opacity:.8} }
               `}</style>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gridTemplateRows:'auto auto', gap:16 }}>
                 
                 {/* ── Greeting + Clock — spans 2 cols ── */}
                 <div style={{ 
                   gridColumn:'1 / 3', borderRadius:16, padding:28, position:'relative', overflow:'hidden',
-                  background:'linear-gradient(135deg, rgba(129,140,248,.08), rgba(52,211,153,.05))',
-                  border:'1px solid rgba(129,140,248,.15)',
+                  background:'rgba(255,255,255,.025)',
+                  border:'1px solid rgba(255,255,255,.08)',
                 }}>
                   <LiveGreeting user={user} rooms={rooms} />
                 </div>
@@ -334,8 +332,8 @@ export default function Dashboard() {
                       />
                       <defs>
                         <linearGradient id="roomGrad" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor="#34D399" />
-                          <stop offset="100%" stopColor="#818CF8" />
+                          <stop offset="0%" stopColor="#F3F4F6" />
+                          <stop offset="100%" stopColor="#6B7280" />
                         </linearGradient>
                       </defs>
                     </svg>
@@ -351,7 +349,7 @@ export default function Dashboard() {
                   borderRadius:16, padding:20, 
                   background:'rgba(255,255,255,.025)', border:'1px solid rgba(255,255,255,.06)',
                 }}>
-                  <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'#6B7280', marginBottom:14 }}>Languages</p>
+                  <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'#4B5563', marginBottom:14 }}>Languages</p>
                   <LanguageBreakdown rooms={rooms} />
                 </div>
 
@@ -360,20 +358,20 @@ export default function Dashboard() {
                   borderRadius:16, padding:20, position:'relative', overflow:'hidden',
                   background:'rgba(255,255,255,.025)', border:'1px solid rgba(255,255,255,.06)',
                 }}>
-                  <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'#6B7280', marginBottom:14 }}>Coding Pulse</p>
+                  <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:'#4B5563', marginBottom:14 }}>Coding Pulse</p>
                   <CodingPulse count={rooms.length} />
                 </div>
 
                 {/* ── Quick Actions ── */}
                 <div style={{ 
                   borderRadius:16, padding:20,
-                  border:'1px solid rgba(255,255,255,.15)',
-                  background:'linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.08))',
+                  border:'1px solid rgba(255,255,255,.1)',
+                  background:'rgba(255,255,255,.03)',
                   display:'flex', flexDirection:'column', justifyContent:'space-between',
                 }}>
                   <div>
-                    <div style={{ width:32, height:32, borderRadius:9, background:'rgba(129,140,248,.15)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:12 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize:17, color:'#818CF8' }}>rocket_launch</span>
+                    <div style={{ width:32, height:32, borderRadius:9, background:'rgba(255,255,255,.1)', border:'1px solid rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:12 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize:17, color:'#D1D5DB' }}>rocket_launch</span>
                     </div>
                     <p style={{ fontSize:13, fontWeight:600, color:'#E5E7EB', marginBottom:4 }}>Quick Start</p>
                     <p style={{ fontSize:12, color:'#4B5563', lineHeight:1.6 }}>
@@ -383,7 +381,7 @@ export default function Dashboard() {
                   <div style={{ display:'flex', gap:8, marginTop:14 }}>
                     <button
                       onClick={() => setModal(true)}
-                      style={{ flex:1, fontSize:12, fontWeight:600, color:'#fff', background:'linear-gradient(135deg,#818CF8,#6366F1)', border:'none', borderRadius:8, padding:'8px 0', cursor:'pointer', transition:'transform .15s' }}
+                      style={{ flex:1, fontSize:12, fontWeight:600, color:'#fff', background:'linear-gradient(135deg,#D1D5DB,#6B7280)', border:'none', borderRadius:8, padding:'8px 0', cursor:'pointer', transition:'transform .15s', boxShadow:'0 4px 16px rgba(255,255,255,.08)' }}
                       onMouseEnter={e => e.currentTarget.style.transform='translateY(-1px)'}
                       onMouseLeave={e => e.currentTarget.style.transform=''}
                     >
@@ -391,7 +389,7 @@ export default function Dashboard() {
                     </button>
                     <button
                       onClick={() => setJoinModal(true)}
-                      style={{ flex:1, fontSize:12, fontWeight:600, color:'#D1D5DB', background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.1)', borderRadius:8, padding:'8px 0', cursor:'pointer', transition:'transform .15s' }}
+                      style={{ flex:1, fontSize:12, fontWeight:600, color:'#9CA3AF', background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.08)', borderRadius:8, padding:'8px 0', cursor:'pointer', transition:'transform .15s' }}
                       onMouseEnter={e => e.currentTarget.style.transform='translateY(-1px)'}
                       onMouseLeave={e => e.currentTarget.style.transform=''}
                     >
@@ -562,32 +560,32 @@ function LiveGreeting({ user, rooms }) {
     <div style={{ animation:'float-up .4s ease' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:12 }}>
         <div>
-          <p style={{ fontSize:13, color:'#818CF8', fontWeight:600, marginBottom:4 }}>{emoji} {greeting}</p>
+          <p style={{ fontSize:13, color:'#9CA3AF', fontWeight:600, marginBottom:4 }}>{emoji} {greeting}</p>
           <h2 style={{ fontSize:22, fontWeight:800, color:'#F1F5F9', marginBottom:6 }}>
             {user?.username || 'Developer'}
           </h2>
           <p style={{ fontSize:13, color:'#4B5563' }}>{dateStr}</p>
         </div>
         <div style={{ textAlign:'right' }}>
-          <p style={{ fontSize:32, fontWeight:200, color:'#E2E8F0', fontFamily:"'JetBrains Mono', monospace", letterSpacing:2 }}>
+          <p style={{ fontSize:32, fontWeight:200, color:'rgba(255,255,255,.15)', fontFamily:"'JetBrains Mono', monospace", letterSpacing:2 }}>
             {timeStr}
           </p>
         </div>
       </div>
-      <div style={{ display:'flex', gap:24, marginTop:18 }}>
+      <div style={{ display:'flex', gap:24, marginTop:18, flexWrap:'wrap' }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ width:8, height:8, borderRadius:'50%', background:'#34D399', boxShadow:'0 0 6px #34D399' }} />
+          <div style={{ width:7, height:7, borderRadius:'50%', background:'#D1D5DB', boxShadow:'0 0 6px rgba(209,213,219,.4)' }} />
           <span style={{ fontSize:12, color:'#6B7280' }}><strong style={{ color:'#D1D5DB' }}>{rooms.length}</strong> rooms active</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ width:8, height:8, borderRadius:'50%', background:'#818CF8', boxShadow:'0 0 6px #818CF8' }} />
-          <span style={{ fontSize:12, color:'#6B7280' }}><strong style={{ color:'#D1D5DB' }}>{totalCollabs}</strong> total collaborators</span>
+          <div style={{ width:7, height:7, borderRadius:'50%', background:'#9CA3AF' }} />
+          <span style={{ fontSize:12, color:'#6B7280' }}><strong style={{ color:'#D1D5DB' }}>{totalCollabs}</strong> collaborators</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <span style={{ fontSize:12, color:'#4B5563', display:'flex', alignItems:'center', gap:4 }}>
+          <span style={{ fontSize:12, color:'#374151', display:'flex', alignItems:'center', gap:4 }}>
             <span style={{ display:'inline-flex', gap:2 }}>
               {[0,1,2].map(i => (
-                <span key={i} style={{ width:3, height:3, borderRadius:'50%', background:'#818CF8', animation:`typing 1.2s ease ${i*0.2}s infinite` }} />
+                <span key={i} style={{ width:3, height:3, borderRadius:'50%', background:'#6B7280', animation:`typing 1.2s ease ${i*0.2}s infinite` }} />
               ))}
             </span>
             coding in progress
@@ -608,12 +606,8 @@ function LanguageBreakdown({ rooms }) {
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 4);
   const max = sorted.length > 0 ? sorted[0][1] : 1;
 
-  const colors = {
-    javascript: '#F59E0B', typescript: '#3B82F6', python: '#10B981',
-    html: '#F97316', css: '#A78BFA', java: '#EF4444', cpp: '#60A5FA',
-    go: '#06B6D4', rust: '#F97316', ruby: '#EF4444', php: '#818CF8',
-    bash: '#4ADE80', markdown: '#D1D5DB',
-  };
+  // Monochrome grey shades — brightest first
+  const greys = ['#E5E7EB', '#D1D5DB', '#9CA3AF', '#6B7280'];
 
   if (sorted.length === 0) {
     return (
@@ -625,23 +619,25 @@ function LanguageBreakdown({ rooms }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-      {sorted.map(([lang, count]) => (
-        <div key={lang}>
-          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-            <span style={{ fontSize:12, fontWeight:600, color:'#D1D5DB', textTransform:'capitalize' }}>{lang}</span>
-            <span style={{ fontSize:11, color:'#6B7280' }}>{count} room{count !== 1 ? 's' : ''}</span>
+      {sorted.map(([lang, count], idx) => {
+        const c = greys[idx % greys.length];
+        return (
+          <div key={lang}>
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+              <span style={{ fontSize:12, fontWeight:600, color:'#D1D5DB', textTransform:'capitalize' }}>{lang}</span>
+              <span style={{ fontSize:11, color:'#4B5563' }}>{count} room{count !== 1 ? 's' : ''}</span>
+            </div>
+            <div style={{ height:5, borderRadius:3, background:'rgba(255,255,255,.04)', overflow:'hidden' }}>
+              <div style={{
+                height:'100%', borderRadius:3,
+                width:`${(count / max) * 100}%`,
+                background:`linear-gradient(90deg, ${c}, ${c}60)`,
+                transition:'width .8s ease',
+              }} />
+            </div>
           </div>
-          <div style={{ height:6, borderRadius:3, background:'rgba(255,255,255,.04)', overflow:'hidden' }}>
-            <div style={{
-              height:'100%', borderRadius:3,
-              width:`${(count / max) * 100}%`,
-              background:`linear-gradient(90deg, ${colors[lang] || '#818CF8'}, ${colors[lang] || '#818CF8'}80)`,
-              transition:'width .8s ease',
-              boxShadow:`0 0 8px ${colors[lang] || '#818CF8'}40`,
-            }} />
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -654,7 +650,6 @@ function CodingPulse({ count }) {
     return () => clearInterval(t);
   }, []);
 
-  // Generate a waveform
   const bars = 20;
   const heights = Array.from({ length: bars }, (_, i) => {
     const base = count > 0 ? 0.3 : 0.05;
@@ -671,9 +666,9 @@ function CodingPulse({ count }) {
             flex:1, height:`${h * 100}%`,
             borderRadius:2,
             background: count > 0
-              ? `linear-gradient(180deg, #34D399, #818CF8)`
-              : 'rgba(255,255,255,.06)',
-            opacity: count > 0 ? 0.4 + h * 0.6 : 0.3,
+              ? 'linear-gradient(180deg, rgba(243,244,246,.6), rgba(107,114,128,.3))'
+              : 'rgba(255,255,255,.04)',
+            opacity: count > 0 ? 0.3 + h * 0.7 : 0.3,
             transition:'height .1s linear',
           }} />
         ))}
@@ -681,8 +676,8 @@ function CodingPulse({ count }) {
       <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:12 }}>
         {count > 0 ? (
           <>
-            <span style={{ width:6, height:6, borderRadius:'50%', background:'#34D399', animation:'pulse-dot 1.5s ease infinite' }} />
-            <span style={{ fontSize:11, color:'#6B7280' }}>Live — <strong style={{ color:'#34D399' }}>{count}</strong> active session{count!==1?'s':''}</span>
+            <span style={{ width:6, height:6, borderRadius:'50%', background:'#D1D5DB', animation:'pulse-dot 1.5s ease infinite' }} />
+            <span style={{ fontSize:11, color:'#6B7280' }}>Live — <strong style={{ color:'#D1D5DB' }}>{count}</strong> active session{count!==1?'s':''}</span>
           </>
         ) : (
           <>
