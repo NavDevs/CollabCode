@@ -65,13 +65,25 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
   
   const getIcon = (name) => {
     const ext = getExt(name);
-    if (ext === 'js' || ext === 'jsx') return { icon: 'javascript', color: '#F7DF1E' };
+    if (ext === 'js' || ext === 'jsx' || ext === 'mjs' || ext === 'cjs') return { icon: 'javascript', color: '#F7DF1E' };
     if (ext === 'ts' || ext === 'tsx') return { icon: 'typescript', color: '#3178C6' };
-    if (ext === 'py') return { icon: 'terminal', color: '#3776AB' };
-    if (ext === 'html') return { icon: 'html', color: '#E34F26' };
-    if (ext === 'css') return { icon: 'css', color: '#1572B6' };
+    if (ext === 'py' || ext === 'pyw') return { icon: 'terminal', color: '#3776AB' };
+    if (ext === 'java') return { icon: 'coffee', color: '#ED8B00' };
+    if (ext === 'cpp' || ext === 'cc' || ext === 'cxx' || ext === 'hpp') return { icon: 'memory', color: '#00599C' };
+    if (ext === 'c' || ext === 'h') return { icon: 'memory', color: '#A8B9CC' };
+    if (ext === 'go') return { icon: 'bolt', color: '#00ADD8' };
+    if (ext === 'rs') return { icon: 'settings', color: '#DEA584' };
+    if (ext === 'rb') return { icon: 'diamond', color: '#CC342D' };
+    if (ext === 'php') return { icon: 'php', color: '#777BB4' };
+    if (ext === 'sh' || ext === 'bash') return { icon: 'terminal', color: '#4EAA25' };
+    if (ext === 'html' || ext === 'htm') return { icon: 'html', color: '#E34F26' };
+    if (ext === 'css' || ext === 'scss' || ext === 'less') return { icon: 'css', color: '#1572B6' };
     if (ext === 'json') return { icon: 'data_object', color: '#CBCB41' };
     if (ext === 'md') return { icon: 'markdown', color: '#ffffff' };
+    if (ext === 'sql') return { icon: 'database', color: '#336791' };
+    if (ext === 'xml') return { icon: 'code', color: '#F96702' };
+    if (ext === 'yaml' || ext === 'yml') return { icon: 'settings', color: '#CB171E' };
+    if (ext === 'txt') return { icon: 'description', color: '#D1D5DB' };
     return { icon: 'description', color: '#9CA3AF' };
   };
 
@@ -104,7 +116,23 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
 
   const getLanguageFromExt = (path) => {
     const ext = path.split('.').pop().toLowerCase();
-    const map = { js: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript', py: 'python', html: 'html', css: 'css', json: 'json', md: 'markdown', go: 'go' };
+    const map = {
+      js: 'javascript', jsx: 'javascript', mjs: 'javascript', cjs: 'javascript',
+      ts: 'typescript', tsx: 'typescript',
+      py: 'python', pyw: 'python',
+      java: 'java',
+      cpp: 'cpp', cc: 'cpp', cxx: 'cpp', hpp: 'cpp',
+      c: 'c', h: 'c',
+      go: 'go',
+      rs: 'rust',
+      rb: 'ruby',
+      php: 'php',
+      sh: 'bash', bash: 'bash',
+      html: 'html', htm: 'html',
+      css: 'css', scss: 'css', less: 'css',
+      json: 'json', md: 'markdown', sql: 'sql', xml: 'xml',
+      yaml: 'yaml', yml: 'yaml', txt: 'plaintext',
+    };
     return map[ext] || 'plaintext';
   };
 
