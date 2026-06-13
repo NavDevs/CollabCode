@@ -154,9 +154,48 @@ export default function Profile() {
         <div className="scroll" style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
           <div style={{ maxWidth: 780, margin:'0 auto', padding:'36px 32px 64px' }}>
 
+            {/* ── Breadcrumb — quick switch ── */}
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:20 }}>
+              <button onClick={() => navigate(-1)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', color:'#4B5563', fontSize:12, fontWeight:500, cursor:'pointer', padding:'4px 8px', borderRadius:6, transition:'all .15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,.06)'; e.currentTarget.style.color='#9CA3AF'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='none'; e.currentTarget.style.color='#4B5563'; }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize:14 }}>arrow_back</span>
+                Back
+              </button>
+              <span style={{ color:'#374151', fontSize:11 }}>│</span>
+              <button onClick={() => navigate('/dashboard')} style={{ background:'none', border:'none', color:'#4B5563', fontSize:12, cursor:'pointer', padding:'4px 8px', borderRadius:6, transition:'color .15s' }}
+                onMouseEnter={e => e.currentTarget.style.color='#9CA3AF'}
+                onMouseLeave={e => e.currentTarget.style.color='#4B5563'}
+              >Dashboard</button>
+
+              {/* Editor link */}
+              {(() => {
+                try {
+                  const saved = JSON.parse(localStorage.getItem('cc_lastRoom'));
+                  if (saved?.roomId) return (
+                    <>
+                      <span style={{ color:'#374151', fontSize:11 }}>│</span>
+                      <button onClick={() => navigate(`/editor/${saved.roomId}`)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', color:'#4B5563', fontSize:12, cursor:'pointer', padding:'4px 8px', borderRadius:6, transition:'color .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.color='#9CA3AF'}
+                        onMouseLeave={e => e.currentTarget.style.color='#4B5563'}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize:13 }}>code</span>
+                        Editor
+                      </button>
+                    </>
+                  );
+                } catch { /* ignore */ }
+                return null;
+              })()}
+
+              <span style={{ color:'#374151', fontSize:11 }}>│</span>
+              <span style={{ fontSize:12, color:'#9CA3AF', fontWeight:600 }}>Profile</span>
+            </div>
+
             {/* ── Page Header ── */}
             <div style={{ marginBottom: 36 }}>
-              <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'#4B5563', marginBottom:8 }}>Settings</p>
+              <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'#4B5563', marginBottom:8 }}>Account</p>
               <h1 style={{ fontSize:28, fontWeight:800, letterSpacing:'-0.02em' }}>
                 <span style={{ color:'#F1F5F9' }}>Your </span>
                 <span className="gtext">Profile</span>

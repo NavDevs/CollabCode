@@ -137,6 +137,27 @@ export default function Settings() {
                 onMouseEnter={e => e.currentTarget.style.color='var(--cc-text-secondary, #9CA3AF)'}
                 onMouseLeave={e => e.currentTarget.style.color='var(--cc-text-muted, #4B5563)'}
               >Dashboard</button>
+
+              {/* Editor link — only shows if last room exists */}
+              {(() => {
+                try {
+                  const saved = JSON.parse(localStorage.getItem('cc_lastRoom'));
+                  if (saved?.roomId) return (
+                    <>
+                      <span style={{ color:'var(--cc-text-dim, #374151)', fontSize:11 }}>│</span>
+                      <button onClick={() => navigate(`/editor/${saved.roomId}`)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', color:'var(--cc-text-muted, #4B5563)', fontSize:12, cursor:'pointer', padding:'4px 8px', borderRadius:6, transition:'color .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.color='var(--cc-text-secondary, #9CA3AF)'}
+                        onMouseLeave={e => e.currentTarget.style.color='var(--cc-text-muted, #4B5563)'}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize:13 }}>code</span>
+                        Editor
+                      </button>
+                    </>
+                  );
+                } catch { /* ignore */ }
+                return null;
+              })()}
+
               <span style={{ color:'var(--cc-text-dim, #374151)', fontSize:11 }}>│</span>
               <span style={{ fontSize:12, color:'var(--cc-text-secondary, #9CA3AF)', fontWeight:600 }}>Settings</span>
             </div>

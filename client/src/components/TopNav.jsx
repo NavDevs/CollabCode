@@ -95,6 +95,31 @@ export default function TopNav({ subtitle, rightContent, showNav = true }) {
               </button>
             );
           })}
+
+          {/* Back to Editor — shows when not on editor page and has a saved room */}
+          {showNav && !location.pathname.startsWith('/editor') && (() => {
+            try {
+              const saved = JSON.parse(localStorage.getItem('cc_lastRoom'));
+              if (saved?.roomId) return (
+                <button
+                  onClick={() => navigate(`/editor/${saved.roomId}`)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:5,
+                    padding:'5px 12px', marginLeft:8, borderRadius:7,
+                    background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.1)',
+                    color:'#9CA3AF', fontSize:12, fontWeight:600,
+                    cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,.12)'; e.currentTarget.style.color='#F3F4F6'; e.currentTarget.style.borderColor='rgba(255,255,255,.25)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,.06)'; e.currentTarget.style.color='#9CA3AF'; e.currentTarget.style.borderColor='rgba(255,255,255,.1)'; }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize:14 }}>code</span>
+                  Back to Editor
+                </button>
+              );
+            } catch { /* ignore */ }
+            return null;
+          })()}
         </div>
 
         {/* ── Right ── */}

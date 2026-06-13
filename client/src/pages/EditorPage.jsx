@@ -123,6 +123,14 @@ export default function EditorPage() {
   const { socket, connected, joinRoom, leaveRoom } = useSocket();
   const navigate   = useNavigate();
 
+  // Remember last active editor for cross-page navigation
+  useEffect(() => {
+    if (roomId) {
+      localStorage.setItem('cc_lastRoom', JSON.stringify({ roomId, ts: Date.now() }));
+    }
+    return () => {};
+  }, [roomId]);
+
   const [room,        setRoom]        = useState(null);
   const [code,        setCode]        = useState('');
   const [loading,     setLoading]     = useState(true);
