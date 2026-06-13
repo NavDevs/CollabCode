@@ -735,6 +735,7 @@ function ExItem({ icon, label, color, active, indent=0 }) {
 /* ── Drag-to-resize handle between panels ── */
 function ResizeHandle({ onDrag }) {
   const [dragging, setDragging] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const onDragRef = useRef(onDrag);
   onDragRef.current = onDrag;
 
@@ -744,50 +745,53 @@ function ResizeHandle({ onDrag }) {
     setDragging(true);
     let lastX = e.clientX;
 
-    const handleMove = (me) => {
+    const onMove = (me) => {
       me.preventDefault();
       const dx = me.clientX - lastX;
       lastX = me.clientX;
       if (dx !== 0) onDragRef.current(dx);
     };
 
-    const handleUp = () => {
+    const onUp = () => {
       setDragging(false);
-      document.removeEventListener('mousemove', handleMove);
-      document.removeEventListener('mouseup', handleUp);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
 
-    document.addEventListener('mousemove', handleMove);
-    document.addEventListener('mouseup', handleUp);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   }, []);
 
+  const showLine = dragging || hovered;
+
   return (
     <div
       onMouseDown={handleMouseDown}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
-        width: 6,
+        width: 16,
+        marginLeft: -8,
+        marginRight: -8,
         cursor: 'col-resize',
-        background: dragging ? '#007ACC' : 'transparent',
         flexShrink: 0,
-        transition: dragging ? 'none' : 'background .15s',
         zIndex: 20,
-        position: 'relative',
+        display: 'flex',
+        alignItems: 'stretch',
+        justifyContent: 'center',
       }}
-      onMouseEnter={e => { if (!dragging) e.currentTarget.style.background = '#007ACC'; }}
-      onMouseLeave={e => { if (!dragging) e.currentTarget.style.background = 'transparent'; }}
     >
-      {/* Invisible wider grab area */}
       <div style={{
-        position: 'absolute',
-        top: 0, bottom: 0,
-        left: -4, right: -4,
-        cursor: 'col-resize',
+        width: 2,
+        background: showLine ? '#007ACC' : 'transparent',
+        transition: dragging ? 'none' : 'background .12s',
       }} />
     </div>
   );
 }
+
 
