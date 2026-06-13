@@ -1,7 +1,7 @@
 const { verifyToken } = require('@clerk/backend');
 const { Server } = require('socket.io');
 const User = require('../models/User');
-const { registerRoomHandler, connectedUsers } = require('./room.handler');
+const { registerRoomHandler, connectedUsers, broadcastRoomUsers } = require('./room.handler');
 const { registerYjsHandler } = require('./yjs.handler');
 const { registerChatHandler } = require('./chat.handler');
 const { registerCursorHandler } = require('./cursor.handler');
@@ -100,15 +100,8 @@ const setupSocket = (io) => {
               });
             }
 
-            // Broadcast updated full list so everyone stays in sync
-            const usersList = Array.from(roomUsers.values());
-            const seen = new Set();
-            const uniqueUsers = usersList.filter(u => {
-              if (seen.has(u.userId)) return false;
-              seen.add(u.userId);
-              return true;
-            });
-            io.in(roomId).emit('room-users', uniqueUsers);
+            // Use shared helper for consistent user list broadcast
+            broadcastRoomUsers(io, roomId);
 
             // If room is now empty, clean up Yjs doc
             if (roomUsers.size === 0) {

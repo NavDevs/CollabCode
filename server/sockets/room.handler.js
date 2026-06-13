@@ -20,6 +20,22 @@ const saveSystemMessage = async (roomId, username, avatarColor, userId, msg) => 
   }
 };
 
+// Helper: build deduplicated user list for a room and broadcast to ALL in it
+const broadcastRoomUsers = (io, roomId) => {
+  const roomUsers = connectedUsers.get(roomId);
+  if (!roomUsers) return [];
+
+  const usersList = Array.from(roomUsers.values());
+  const seen = new Set();
+  const uniqueUsers = usersList.filter(u => {
+    if (seen.has(u.userId)) return false;
+    seen.add(u.userId);
+    return true;
+  });
+  io.in(roomId).emit('room-users', uniqueUsers);
+  return uniqueUsers;
+};
+
 const registerRoomHandler = (io, socket) => {
   socket.on('join-room', async (roomId) => {
     try {
@@ -42,6 +58,7 @@ const registerRoomHandler = (io, socket) => {
         userId: socket.user._id.toString(),
         username: socket.user.username,
         avatarColor: socket.user.avatarColor,
+        profilePicture: socket.user.profilePicture || null,
       });
 
       // Store the roomId on the socket for cleanup on disconnect
@@ -73,16 +90,8 @@ const registerRoomHandler = (io, socket) => {
         saveSystemMessage(roomId, socket.user.username, socket.user.avatarColor, socket.user._id, joinMsg);
       }
 
-      // Send the full list of connected users to ALL clients in the room
-      const usersList = Array.from(roomUsers.values());
-      // Deduplicate by userId
-      const seen = new Set();
-      const uniqueUsers = usersList.filter(u => {
-        if (seen.has(u.userId)) return false;
-        seen.add(u.userId);
-        return true;
-      });
-      io.in(roomId).emit('room-users', uniqueUsers);
+      // Broadcast the full user list to ALL clients including the joiner
+      broadcastRoomUsers(io, roomId);
 
       // Notify the joiner themselves
       notify(io, {
@@ -109,9 +118,7 @@ const registerRoomHandler = (io, socket) => {
 
   socket.on('leave-room', async (roomId) => {
     try {
-      socket.leave(roomId);
-
-      // Remove from connectedUsers
+      // Remove from connectedUsers FIRST (before leaving Socket.IO room)
       if (connectedUsers.has(roomId)) {
         const roomUsers = connectedUsers.get(roomId);
         roomUsers.delete(socket.id);
@@ -150,21 +157,17 @@ const registerRoomHandler = (io, socket) => {
           });
         }
 
-        // Broadcast updated full list to everyone remaining
-        const usersList = Array.from(roomUsers.values());
-        const seen = new Set();
-        const uniqueUsers = usersList.filter(u => {
-          if (seen.has(u.userId)) return false;
-          seen.add(u.userId);
-          return true;
-        });
-        io.in(roomId).emit('room-users', uniqueUsers);
+        // Broadcast updated user list BEFORE the socket leaves the room
+        broadcastRoomUsers(io, roomId);
 
         // Clean up empty rooms
         if (roomUsers.size === 0) {
           connectedUsers.delete(roomId);
         }
       }
+
+      // Leave Socket.IO room AFTER broadcasting (so leaving user gets the update too)
+      socket.leave(roomId);
 
       // Remove from socket tracking
       if (socket.rooms_joined) {
@@ -176,4 +179,4 @@ const registerRoomHandler = (io, socket) => {
   });
 };
 
-module.exports = { registerRoomHandler, connectedUsers };
+module.exports = { registerRoomHandler, connectedUsers, broadcastRoomUsers };
