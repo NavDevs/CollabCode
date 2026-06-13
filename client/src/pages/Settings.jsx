@@ -114,7 +114,7 @@ export default function Settings() {
   };
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden', background:'#050505' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden', background:'var(--cc-bg, #050505)' }}>
       <TopNav showNav />
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
@@ -123,11 +123,29 @@ export default function Settings() {
         <div className="scroll" style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
           <div style={{ maxWidth: 780, margin:'0 auto', padding:'36px 32px 64px' }}>
 
+            {/* Breadcrumb — quick switch */}
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:20 }}>
+              <button onClick={() => navigate(-1)} style={{ display:'flex', alignItems:'center', gap:4, background:'none', border:'none', color:'var(--cc-text-muted, #4B5563)', fontSize:12, fontWeight:500, cursor:'pointer', padding:'4px 8px', borderRadius:6, transition:'all .15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,.06)'; e.currentTarget.style.color='var(--cc-text-secondary, #9CA3AF)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='none'; e.currentTarget.style.color='var(--cc-text-muted, #4B5563)'; }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize:14 }}>arrow_back</span>
+                Back
+              </button>
+              <span style={{ color:'var(--cc-text-dim, #374151)', fontSize:11 }}>│</span>
+              <button onClick={() => navigate('/dashboard')} style={{ background:'none', border:'none', color:'var(--cc-text-muted, #4B5563)', fontSize:12, cursor:'pointer', padding:'4px 8px', borderRadius:6, transition:'color .15s' }}
+                onMouseEnter={e => e.currentTarget.style.color='var(--cc-text-secondary, #9CA3AF)'}
+                onMouseLeave={e => e.currentTarget.style.color='var(--cc-text-muted, #4B5563)'}
+              >Dashboard</button>
+              <span style={{ color:'var(--cc-text-dim, #374151)', fontSize:11 }}>│</span>
+              <span style={{ fontSize:12, color:'var(--cc-text-secondary, #9CA3AF)', fontWeight:600 }}>Settings</span>
+            </div>
+
             {/* Page Header */}
             <div style={{ marginBottom: 36 }}>
-              <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'#4B5563', marginBottom:8 }}>Configuration</p>
+              <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'var(--cc-text-muted, #4B5563)', marginBottom:8 }}>Configuration</p>
               <h1 style={{ fontSize:28, fontWeight:800, letterSpacing:'-0.02em' }}>
-                <span style={{ color:'#F1F5F9' }}>App </span>
+                <span style={{ color:'var(--cc-text, #F1F5F9)' }}>App </span>
                 <span className="gtext">Settings</span>
               </h1>
               <p style={{ marginTop:6, fontSize:14, color:'#4B5563' }}>

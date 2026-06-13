@@ -43,7 +43,7 @@ export default function Rooms() {
   });
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden', background:'#050505' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden', background:'var(--cc-bg, #050505)' }}>
       <TopNav subtitle="All Rooms" />
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>

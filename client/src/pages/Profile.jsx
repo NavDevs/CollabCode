@@ -145,7 +145,7 @@ export default function Profile() {
   };
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden', background:'#050505' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden', background:'var(--cc-bg, #050505)' }}>
       <TopNav showNav />
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>

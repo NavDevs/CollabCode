@@ -8,9 +8,10 @@
 html, body, #root { height: 100%; overflow: hidden; }
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: #050505;
-  color: #F9FAFB;
+  background: var(--cc-bg, #050505);
+  color: var(--cc-text, #F9FAFB);
   -webkit-font-smoothing: antialiased;
+  transition: background .3s ease, color .3s ease;
 }
 
 /* ─── Material Symbols ───────────────────── */

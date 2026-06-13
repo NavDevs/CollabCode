@@ -343,7 +343,7 @@ export default function EditorPage() {
 
   /* ── Loading screen ── */
   if (loading) return (
-    <div style={{ display:'flex',height:'100vh',alignItems:'center',justifyContent:'center',background:'#050505' }}>
+    <div style={{ display:'flex',height:'100vh',alignItems:'center',justifyContent:'center',background:'var(--cc-bg, #050505)' }}>
       <div style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:14 }}>
         <div style={{ width:52,height:52,borderRadius:16,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.25)' }}>
           <span className="material-symbols-outlined anim-spin" style={{ fontSize:26,color:'#F3F4F6' }}>sync</span>
@@ -354,7 +354,7 @@ export default function EditorPage() {
   );
 
   if (passwordReq) return (
-    <div style={{ display:'flex',height:'100vh',alignItems:'center',justifyContent:'center',background:'#050505' }}>
+    <div style={{ display:'flex',height:'100vh',alignItems:'center',justifyContent:'center',background:'var(--cc-bg, #050505)' }}>
       <div style={{ width: '100%', maxWidth: 360, padding: 32, background: '#0A0A0A', borderRadius: 20, border: '1px solid rgba(255,255,255,.25)', boxShadow: '0 40px 100px rgba(0,0,0,.7)' }}>
         <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, border: '1px solid rgba(255,255,255,.2)' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 24, color: '#F3F4F6' }}>lock</span>
@@ -383,14 +383,14 @@ export default function EditorPage() {
   const isReadOnly = room?.isReadOnly && user?._id !== room?.ownerId;
 
   return (
-    <div style={{ display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden',background:'#050505' }}>
+    <div style={{ display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden',background:'var(--cc-bg, #050505)' }}>
 
       {/* ══════════════════════ TOP BAR ══════════════════════ */}
       <header style={{
         height:48,flexShrink:0,zIndex:50,
         display:'flex',alignItems:'center',
         padding:'0 12px 0 16px',gap:0,
-        background:'rgba(5,5,12,.98)',
+        background:'var(--cc-topnav, rgba(5,5,12,.98))',
         borderBottom:'1px solid rgba(255,255,255,.05)',
         backdropFilter:'blur(10px)',
         overflow:'hidden',
@@ -513,6 +513,9 @@ export default function EditorPage() {
           {/* Dashboard */}
           <NavBtn icon="dashboard" title="Dashboard" onClick={() => navigate('/dashboard')} />
 
+          {/* App Settings */}
+          <NavBtn icon="tune" title="App Settings" onClick={() => navigate('/settings')} />
+
           {/* Chat toggle */}
           <NavBtn
             icon="chat"
@@ -546,7 +549,7 @@ export default function EditorPage() {
 
           {showExplorer && (
               <div style={{ width: explorerWidth, minWidth: 160, maxWidth: 500, flexShrink:0, position:'relative', display:'flex' }}>
-                <aside style={{ flex:1, display:'flex', flexDirection:'column', background:'rgba(5,5,12,.98)', overflow:'hidden' }}>
+                <aside style={{ flex:1, display:'flex', flexDirection:'column', background:'var(--cc-bg-panel, rgba(5,5,12,.98))', overflow:'hidden' }}>
                   {activeTab === 'explorer' && (
                     <FileTree
                       roomId={roomId}

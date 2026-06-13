@@ -13,7 +13,7 @@ const S = {
     alignItems: 'center',
     paddingTop: 8,
     paddingBottom: 8,
-    background: 'rgba(5,5,12,.98)',
+    background: 'var(--cc-sidenav, rgba(5,5,12,.98))',
     borderRight: '1px solid rgba(255,255,255,.05)',
     zIndex: 40,
     height: '100%',

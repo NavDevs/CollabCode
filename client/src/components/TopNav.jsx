@@ -41,8 +41,8 @@ export default function TopNav({ subtitle, rightContent, showNav = true }) {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 12px 0 16px',
-          background: 'rgba(5,5,12,.98)',
-          borderBottom: '1px solid rgba(255,255,255,.05)',
+          background: 'var(--cc-topnav, rgba(5,5,12,.98))',
+          borderBottom: '1px solid var(--cc-border, rgba(255,255,255,.05))',
           flexShrink: 0,
           zIndex: 50,
           backdropFilter: 'blur(10px)',
@@ -101,6 +101,7 @@ export default function TopNav({ subtitle, rightContent, showNav = true }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {rightContent}
           <NotificationDropdown />
+          <IconBtn icon="settings" title="Settings" onClick={() => navigate('/settings')} />
           <IconBtn icon="help_outline" title="Help" onClick={() => setShowHelp(true)} />
 
         <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,.08)', margin: '0 6px' }} />
