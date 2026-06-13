@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../services/api';
 
 const PALETTE = ['#F3F4F6','#34D399','#FB7185','#FBBF24','#60A5FA','#F97316','#E879F9','#2DD4BF'];
@@ -17,12 +17,13 @@ const fmtDate = ts => {
   return d.toLocaleDateString([], { month:'short', day:'numeric' });
 };
 
-export default function ChatPanel({ roomId, socket, user, users = [] }) {
+export default function ChatPanel({ roomId, socket, user, users = [], onLeaveRoom }) {
   const [msgs,  setMsgs]  = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('chat'); // 'chat' or 'members'
+  const [activeTab, setActiveTab] = useState('chat');
   const [typingUsers, setTypingUsers] = useState([]);
+  const [leaveConfirm, setLeaveConfirm] = useState(false);
   const bottom = useRef(null);
   const typingTimer = useRef(null);
 
@@ -38,6 +39,7 @@ export default function ChatPanel({ roomId, socket, user, users = [] }) {
           avatarColor: m.avatarColor,
           message: m.message,
           timestamp: new Date(m.timestamp).getTime(),
+          type: 'message',
         })));
       })
       .catch(() => {})
@@ -46,20 +48,39 @@ export default function ChatPanel({ roomId, socket, user, users = [] }) {
 
   useEffect(() => {
     if (!socket) return;
-    socket.on('chat-message', m => setMsgs(p => [...p, m]));
-    socket.on('user-typing', ({ username }) => {
+
+    const handleMsg = m => setMsgs(p => [...p, { ...m, type: 'message' }]);
+
+    const handleSystem = m => {
+      setMsgs(p => {
+        // Prevent duplicate system messages within 2 seconds
+        const isDupe = p.some(
+          prev => prev.type === 'system' && prev.username === m.username
+            && prev.message === m.message && Math.abs(prev.timestamp - m.timestamp) < 2000
+        );
+        if (isDupe) return p;
+        return [...p, { ...m, type: 'system', id: `sys-${m.timestamp}-${m.userId}` }];
+      });
+    };
+
+    const handleTyping = ({ username }) => {
       setTypingUsers(p => {
         if (p.includes(username)) return p;
         return [...p, username];
       });
-      // Remove after 3s
       setTimeout(() => {
         setTypingUsers(p => p.filter(u => u !== username));
       }, 3000);
-    });
+    };
+
+    socket.on('chat-message', handleMsg);
+    socket.on('chat-system', handleSystem);
+    socket.on('user-typing', handleTyping);
+
     return () => {
-      socket.off('chat-message');
-      socket.off('user-typing');
+      socket.off('chat-message', handleMsg);
+      socket.off('chat-system', handleSystem);
+      socket.off('user-typing', handleTyping);
     };
   }, [socket]);
 
@@ -80,7 +101,6 @@ export default function ChatPanel({ roomId, socket, user, users = [] }) {
     setTypingUsers(p => p.filter(u => u !== user?.username));
   };
 
-  // Group messages by date
   const getDateKey = (ts) => new Date(ts).toDateString();
 
   const tabBtn = (tab, icon, label) => (
@@ -99,6 +119,35 @@ export default function ChatPanel({ roomId, socket, user, users = [] }) {
       {label}
       {tab === 'members' && <span style={{ fontSize: 10, padding: '0 5px', borderRadius: 999, background: 'rgba(139,92,246,.25)', color: '#A78BFA', fontWeight: 700 }}>{users.length}</span>}
     </button>
+  );
+
+  /* ── System message bubble ── */
+  const SystemMsg = ({ msg }) => (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+      padding: '6px 0', margin: '4px 0',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '4px 12px', borderRadius: 999,
+        background: msg.type === 'system' && msg.message?.includes('joined')
+          ? 'rgba(34,197,94,.08)' : 'rgba(239,68,68,.06)',
+        border: msg.message?.includes('joined')
+          ? '1px solid rgba(34,197,94,.15)' : '1px solid rgba(239,68,68,.1)',
+      }}>
+        <span className="material-symbols-outlined" style={{
+          fontSize: 13,
+          color: msg.message?.includes('joined') ? '#22C55E' : '#EF4444',
+        }}>
+          {msg.message?.includes('joined') ? 'login' : 'logout'}
+        </span>
+        <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>
+          <strong style={{ color: msg.avatarColor || '#D1D5DB' }}>{msg.username}</strong>
+          {' '}{msg.message?.includes('joined') ? 'joined the room' : 'left the room'}
+        </span>
+        <span style={{ fontSize: 10, color: '#4B5563' }}>{fmtTime(msg.timestamp)}</span>
+      </div>
+    </div>
   );
 
   return (
@@ -122,9 +171,9 @@ export default function ChatPanel({ roomId, socket, user, users = [] }) {
           <span style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB', letterSpacing: '.02em' }}>
             Team Chat
           </span>
-          {msgs.length > 0 && (
+          {msgs.filter(m => m.type === 'message').length > 0 && (
             <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'rgba(139,92,246,.2)', color: '#A78BFA' }}>
-              {msgs.length}
+              {msgs.filter(m => m.type === 'message').length}
             </span>
           )}
         </div>
@@ -156,10 +205,16 @@ export default function ChatPanel({ roomId, socket, user, users = [] }) {
             ) : (
               <>
                 {msgs.map((msg, i) => {
+                  // System messages (join/leave)
+                  if (msg.type === 'system') {
+                    return <SystemMsg key={msg.id || `sys-${i}`} msg={msg} />;
+                  }
+
                   const isMe = msg.username === user?.username;
                   const color = msg.avatarColor || nameColor(msg.username || 'U');
-                  const showDate = i === 0 || getDateKey(msg.timestamp) !== getDateKey(msgs[i - 1].timestamp);
-                  const showAvatar = i === 0 || msgs[i - 1].username !== msg.username || (msg.timestamp - msgs[i - 1].timestamp > 120000);
+                  const showDate = i === 0 || getDateKey(msg.timestamp) !== getDateKey(msgs[i - 1]?.timestamp);
+                  const prevMsg = msgs[i - 1];
+                  const showAvatar = !prevMsg || prevMsg.type === 'system' || prevMsg.username !== msg.username || (msg.timestamp - prevMsg.timestamp > 120000);
 
                   return (
                     <div key={msg.id || i}>
@@ -359,10 +414,64 @@ export default function ChatPanel({ roomId, socket, user, users = [] }) {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#9CA3AF' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 14 }}>chat</span>
-                {msgs.length} message{msgs.length !== 1 ? 's' : ''}
+                {msgs.filter(m => m.type === 'message').length} message{msgs.filter(m => m.type === 'message').length !== 1 ? 's' : ''}
               </div>
             </div>
           </div>
+
+          {/* Leave Room Button */}
+          {onLeaveRoom && (
+            <div style={{ borderTop: '1px solid rgba(255,255,255,.06)', paddingTop: 14, marginTop: 14 }}>
+              {!leaveConfirm ? (
+                <button
+                  onClick={() => setLeaveConfirm(true)}
+                  style={{
+                    width: '100%', padding: '10px 0', borderRadius: 8,
+                    background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)',
+                    color: '#EF4444', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    transition: 'all .15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background='rgba(239,68,68,.15)'; e.currentTarget.style.borderColor='rgba(239,68,68,.4)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background='rgba(239,68,68,.08)'; e.currentTarget.style.borderColor='rgba(239,68,68,.2)'; }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>logout</span>
+                  Leave Room
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <p style={{ fontSize: 12, color: '#EF4444', fontWeight: 600, textAlign: 'center' }}>
+                    Leave this room? It will be removed from your dashboard.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => setLeaveConfirm(false)}
+                      style={{
+                        flex: 1, padding: '8px 0', borderRadius: 6,
+                        background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)',
+                        color: '#9CA3AF', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={onLeaveRoom}
+                      style={{
+                        flex: 1, padding: '8px 0', borderRadius: 6,
+                        background: '#EF4444', border: 'none',
+                        color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        transition: 'background .15s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background='#DC2626'}
+                      onMouseLeave={e => e.currentTarget.style.background='#EF4444'}
+                    >
+                      Confirm Leave
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </aside>

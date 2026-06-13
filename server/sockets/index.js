@@ -65,15 +65,38 @@ const setupSocket = (io) => {
             const roomUsers = connectedUsers.get(roomId);
             roomUsers.delete(socket.id);
 
-            // Broadcast user-left to the room
-            io.in(roomId).emit('user-left', {
-              userId: socket.user._id.toString(),
-              username: socket.user.username,
-            });
+            // Check if user still has other sockets in the room
+            const stillPresent = Array.from(roomUsers.values()).some(
+              u => u.userId === socket.user._id.toString()
+            );
+
+            if (!stillPresent) {
+              // Emit system chat message
+              io.in(roomId).emit('chat-system', {
+                type: 'leave',
+                username: socket.user.username,
+                avatarColor: socket.user.avatarColor,
+                userId: socket.user._id.toString(),
+                timestamp: Date.now(),
+                message: `${socket.user.username} disconnected`,
+              });
+
+              // Broadcast user-left to the room
+              io.in(roomId).emit('user-left', {
+                userId: socket.user._id.toString(),
+                username: socket.user.username,
+              });
+            }
 
             // Broadcast updated full list so everyone stays in sync
             const usersList = Array.from(roomUsers.values());
-            io.in(roomId).emit('room-users', usersList);
+            const seen = new Set();
+            const uniqueUsers = usersList.filter(u => {
+              if (seen.has(u.userId)) return false;
+              seen.add(u.userId);
+              return true;
+            });
+            io.in(roomId).emit('room-users', uniqueUsers);
 
             // If room is now empty, clean up Yjs doc
             if (roomUsers.size === 0) {

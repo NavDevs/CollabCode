@@ -14,6 +14,12 @@ const registerRoomHandler = (io, socket) => {
       }
 
       const roomUsers = connectedUsers.get(roomId);
+
+      // Check if user is already in the room (reconnect)
+      const alreadyPresent = Array.from(roomUsers.values()).some(
+        u => u.userId === socket.user._id.toString()
+      );
+
       roomUsers.set(socket.id, {
         userId: socket.user._id.toString(),
         username: socket.user.username,
@@ -26,16 +32,36 @@ const registerRoomHandler = (io, socket) => {
       }
       socket.rooms_joined.add(roomId);
 
-      // Broadcast to others in the room that a user joined
-      socket.to(roomId).emit('user-joined', {
-        userId: socket.user._id.toString(),
-        username: socket.user.username,
-        avatarColor: socket.user.avatarColor,
-      });
+      // Only broadcast join events if user wasn't already present (not a reconnect)
+      if (!alreadyPresent) {
+        // Broadcast to others in the room that a user joined
+        socket.to(roomId).emit('user-joined', {
+          userId: socket.user._id.toString(),
+          username: socket.user.username,
+          avatarColor: socket.user.avatarColor,
+        });
+
+        // Emit system chat message for the join
+        io.in(roomId).emit('chat-system', {
+          type: 'join',
+          username: socket.user.username,
+          avatarColor: socket.user.avatarColor,
+          userId: socket.user._id.toString(),
+          timestamp: Date.now(),
+          message: `${socket.user.username} joined the room`,
+        });
+      }
 
       // Send the full list of connected users to ALL clients in the room
       const usersList = Array.from(roomUsers.values());
-      io.in(roomId).emit('room-users', usersList);
+      // Deduplicate by userId
+      const seen = new Set();
+      const uniqueUsers = usersList.filter(u => {
+        if (seen.has(u.userId)) return false;
+        seen.add(u.userId);
+        return true;
+      });
+      io.in(roomId).emit('room-users', uniqueUsers);
 
       // Notify the joiner themselves
       notify(io, {
@@ -47,12 +73,14 @@ const registerRoomHandler = (io, socket) => {
       });
 
       // Notify other participants
-      notifyRoom(io, roomUsers, socket.user._id.toString(), {
-        type: 'join',
-        title: `${socket.user.username} joined`,
-        message: `${socket.user.username} joined the room.`,
-        roomId,
-      });
+      if (!alreadyPresent) {
+        notifyRoom(io, roomUsers, socket.user._id.toString(), {
+          type: 'join',
+          title: `${socket.user.username} joined`,
+          message: `${socket.user.username} joined the room.`,
+          roomId,
+        });
+      }
     } catch (error) {
       console.error('join-room error:', error.message);
     }
@@ -67,23 +95,46 @@ const registerRoomHandler = (io, socket) => {
         const roomUsers = connectedUsers.get(roomId);
         roomUsers.delete(socket.id);
 
-        // Notify others about leaving
-        notifyRoom(io, roomUsers, socket.user._id.toString(), {
-          type: 'leave',
-          title: `${socket.user.username} left`,
-          message: `${socket.user.username} left the room.`,
-          roomId,
-        });
+        // Check if user still has other sockets in the room
+        const stillPresent = Array.from(roomUsers.values()).some(
+          u => u.userId === socket.user._id.toString()
+        );
 
-        // Broadcast user-left
-        socket.to(roomId).emit('user-left', {
-          userId: socket.user._id.toString(),
-          username: socket.user.username,
-        });
+        if (!stillPresent) {
+          // Emit system chat message for the leave
+          io.in(roomId).emit('chat-system', {
+            type: 'leave',
+            username: socket.user.username,
+            avatarColor: socket.user.avatarColor,
+            userId: socket.user._id.toString(),
+            timestamp: Date.now(),
+            message: `${socket.user.username} left the room`,
+          });
+
+          // Broadcast user-left
+          io.in(roomId).emit('user-left', {
+            userId: socket.user._id.toString(),
+            username: socket.user.username,
+          });
+
+          // Notify others about leaving
+          notifyRoom(io, roomUsers, socket.user._id.toString(), {
+            type: 'leave',
+            title: `${socket.user.username} left`,
+            message: `${socket.user.username} left the room.`,
+            roomId,
+          });
+        }
 
         // Broadcast updated full list to everyone remaining
         const usersList = Array.from(roomUsers.values());
-        io.in(roomId).emit('room-users', usersList);
+        const seen = new Set();
+        const uniqueUsers = usersList.filter(u => {
+          if (seen.has(u.userId)) return false;
+          seen.add(u.userId);
+          return true;
+        });
+        io.in(roomId).emit('room-users', uniqueUsers);
 
         // Clean up empty rooms
         if (roomUsers.size === 0) {

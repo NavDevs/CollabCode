@@ -777,7 +777,17 @@ export default function EditorPage() {
                   onMouseEnter={e => e.currentTarget.style.background='#007ACC'}
                   onMouseLeave={e => e.currentTarget.style.background='transparent'}
                 />
-                <ChatPanel roomId={roomId} socket={socket} user={user} users={users} />
+                <ChatPanel roomId={roomId} socket={socket} user={user} users={users} onLeaveRoom={async () => {
+                  try {
+                    await api.delete(`/rooms/${roomId}/leave`);
+                    if (socket && connected) leaveRoom(roomId);
+                    localStorage.removeItem('cc_lastRoom');
+                    toast.success('Left room successfully');
+                    navigate('/dashboard');
+                  } catch (err) {
+                    toast.error('Failed to leave room');
+                  }
+                }} />
               </div>
           )}
         </main>
