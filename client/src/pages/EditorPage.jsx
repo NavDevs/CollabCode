@@ -221,12 +221,14 @@ export default function EditorPage() {
     ydocRef.current = ydoc;
     const ytext = ydoc.getText('monaco');
     let cancelled = false;
+    let gotContent = false; // track if we received content
 
     // Request Yjs state from server (fast, ~50ms via WebSocket)
     socket.emit('yjs-sync-request', { roomId, path: activePath });
 
     const handleSyncInit = ({ roomId: r, path: p, state }) => {
       if (r !== roomId || p !== activePath || cancelled) return;
+      gotContent = true;
       if (state && state.length > 0) {
         isRemoteRef.current = true;
         Y.applyUpdate(ydoc, new Uint8Array(state));
@@ -236,14 +238,7 @@ export default function EditorPage() {
         isRemoteRef.current = false;
       } else if (!fileCacheRef.current[activePath]) {
         // No Yjs state and no cache — load from DB as fallback
-        api.get(`/workspaces/${roomId}/files`).then(({ data }) => {
-          if (cancelled) return;
-          const file = (data.files || []).find(f => f.path === activePath);
-          if (file && file.content) {
-            setCode(file.content);
-            fileCacheRef.current[activePath] = file.content;
-          }
-        }).catch(() => {});
+        loadFromAPI(activePath, cancelled);
       }
     };
 
@@ -259,11 +254,20 @@ export default function EditorPage() {
       }
     };
 
+    // Fallback: if Yjs doesn't respond within 2s, load from HTTP API
+    const fallbackTimer = setTimeout(() => {
+      if (!gotContent && !cancelled && !fileCacheRef.current[activePath]) {
+        console.log('[Yjs] Timeout — falling back to HTTP API for', activePath);
+        loadFromAPI(activePath, cancelled);
+      }
+    }, 2000);
+
     socket.on('yjs-sync-init', handleSyncInit);
     socket.on('yjs-update', handleUpdate);
 
     return () => {
       cancelled = true;
+      clearTimeout(fallbackTimer);
       // Cache current content before leaving
       const currentContent = editorRef.current?.getValue?.();
       if (currentContent) {
@@ -275,6 +279,19 @@ export default function EditorPage() {
       ydocRef.current = null;
     };
   }, [socket, connected, roomId, activePath]);
+
+  // HTTP API fallback loader
+  const loadFromAPI = async (path, cancelled) => {
+    try {
+      const { data } = await api.get(`/workspaces/${roomId}/files`);
+      if (cancelled) return;
+      const file = (data.files || []).find(f => f.path === path);
+      if (file && file.content != null) {
+        setCode(file.content);
+        fileCacheRef.current[path] = file.content;
+      }
+    } catch { /* ignore */ }
+  };
 
   /* ── Global Socket Setup ── */
   useEffect(() => {
@@ -599,6 +616,13 @@ export default function EditorPage() {
                       openPaths={openPaths}
                       setOpenPaths={setOpenPaths}
                       refreshKey={fileTreeRefresh}
+                      onFileContentReady={(path, content) => {
+                        fileCacheRef.current[path] = content;
+                        // If this is the currently active path, show it now
+                        if (path === activePathRef.current || !activePathRef.current) {
+                          setCode(content);
+                        }
+                      }}
                     />
                   )}
                   {activeTab === 'github' && (

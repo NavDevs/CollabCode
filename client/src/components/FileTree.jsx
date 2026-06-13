@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
-export default function FileTree({ roomId, activePath, setActivePath, openPaths, setOpenPaths, isOwner, refreshKey = 0 }) {
+export default function FileTree({ roomId, activePath, setActivePath, openPaths, setOpenPaths, isOwner, refreshKey = 0, onFileContentReady }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -66,6 +66,10 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
         const defaultFile = fileList.find(f => f.path === '/main.js') || fileList[0];
         setOpenPaths([defaultFile.path]);
         setActivePath(defaultFile.path);
+        // Pass initial content to EditorPage immediately
+        if (defaultFile.content != null && onFileContentReady) {
+          onFileContentReady(defaultFile.path, defaultFile.content);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -370,6 +374,10 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
             onClick={() => {
               if (!openPaths.includes(child.path)) setOpenPaths(prev => [...prev, child.path]);
               setActivePath(child.path);
+              // Pass cached content to EditorPage
+              if (contentCacheRef.current[child.path] != null && onFileContentReady) {
+                onFileContentReady(child.path, contentCacheRef.current[child.path]);
+              }
             }}
             style={{
               padding: `4px 16px 4px ${level * 14 + 16 + 20}px`,
