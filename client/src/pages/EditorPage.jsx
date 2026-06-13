@@ -734,24 +734,24 @@ function ExItem({ icon, label, color, active, indent=0 }) {
 /* ── Drag-to-resize handle between panels ── */
 function ResizeHandle({ onDrag }) {
   const [dragging, setDragging] = useState(false);
-  const startX = useRef(null);
+  const onDragRef = useRef(onDrag);
+  onDragRef.current = onDrag;
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = useCallback((e) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragging(true);
-    startX.current = e.clientX;
+    let lastX = e.clientX;
 
     const handleMove = (me) => {
-      if (startX.current !== null) {
-        const dx = me.clientX - startX.current;
-        startX.current = me.clientX;
-        onDrag(dx);
-      }
+      me.preventDefault();
+      const dx = me.clientX - lastX;
+      lastX = me.clientX;
+      if (dx !== 0) onDragRef.current(dx);
     };
 
     const handleUp = () => {
       setDragging(false);
-      startX.current = null;
       document.removeEventListener('mousemove', handleMove);
       document.removeEventListener('mouseup', handleUp);
       document.body.style.cursor = '';
@@ -762,21 +762,31 @@ function ResizeHandle({ onDrag }) {
     document.addEventListener('mouseup', handleUp);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-  };
+  }, []);
 
   return (
     <div
       onMouseDown={handleMouseDown}
       style={{
-        width: 4,
+        width: 6,
         cursor: 'col-resize',
         background: dragging ? '#007ACC' : 'transparent',
         flexShrink: 0,
-        transition: 'background .15s',
-        zIndex: 10,
+        transition: dragging ? 'none' : 'background .15s',
+        zIndex: 20,
+        position: 'relative',
       }}
-      onMouseEnter={e => e.currentTarget.style.background = '#007ACC'}
+      onMouseEnter={e => { if (!dragging) e.currentTarget.style.background = '#007ACC'; }}
       onMouseLeave={e => { if (!dragging) e.currentTarget.style.background = 'transparent'; }}
-    />
+    >
+      {/* Invisible wider grab area */}
+      <div style={{
+        position: 'absolute',
+        top: 0, bottom: 0,
+        left: -4, right: -4,
+        cursor: 'col-resize',
+      }} />
+    </div>
   );
 }
+
