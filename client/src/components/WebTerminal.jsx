@@ -13,12 +13,20 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
   const [activeTab, setActiveTab] = useState('terminal');
   const [isDragging, setIsDragging] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const isInstallingRef = useRef(false);
   const dragStart = useRef(null);
+  const installTimerRef = useRef(null);
 
   // Keep socketRef in sync with the latest socket prop
   useEffect(() => {
     socketRef.current = socket;
   }, [socket]);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    isInstallingRef.current = isInstalling;
+  }, [isInstalling]);
 
   // Boot terminal UI and connect to server
   useEffect(() => {
@@ -75,6 +83,8 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
     term.onData((data) => {
       if (socketRef.current) {
         socketRef.current.emit('terminal-input', data);
+        // Detect install commands
+        // We track this via the output, not input, to be more reliable
       }
     });
 
@@ -107,6 +117,18 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
     // Listen for terminal output from server
     const onOutput = (data) => {
       term.write(data);
+      // Detect install commands starting
+      const text = typeof data === 'string' ? data : '';
+      if (/npm install|npm i |yarn add|pip install|apt install|apt-get install/i.test(text)) {
+        setIsRunning(prev => prev); // keep running state
+        setIsInstalling(true);
+        clearTimeout(installTimerRef.current);
+      }
+      // Detect install completing
+      if (isInstallingRef.current && /(added \d|up to date|Successfully installed|already satisfied|\$ $)/i.test(text)) {
+        clearTimeout(installTimerRef.current);
+        installTimerRef.current = setTimeout(() => setIsInstalling(false), 1000);
+      }
     };
 
     const onReady = () => {
@@ -242,6 +264,13 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>output</span>
             OUTPUT
           </button>
+          {isInstalling && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px' }}>
+              <div style={{ width: 14, height: 14, border: '2px solid transparent', borderTopColor: '#6366F1', borderLeftColor: '#6366F1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <span style={{ fontSize: 11, color: '#8B5CF6', fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>Installing...</span>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          )}
         </div>
 
         {/* Action buttons */}

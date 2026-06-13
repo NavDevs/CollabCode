@@ -67,7 +67,7 @@ function Btn({ icon, label, active, onClick }) {
   );
 }
 
-export default function SideNav({ activeTab, setActiveTab }) {
+export default function SideNav({ activeTab, setActiveTab, showChat, setShowChat }) {
   const navigate = useNavigate();
   const isEditor = activeTab !== undefined;
 
@@ -93,6 +93,7 @@ export default function SideNav({ activeTab, setActiveTab }) {
       ];
 
   const botItems = [
+    ...(setShowChat ? [{ type: 'action', icon: 'chat', label: 'Toggle Chat', action: () => setShowChat(v => !v), isActive: showChat }] : []),
     { type: 'link', icon: 'account_circle', label: 'Account', to: '/profile' },
     { type: 'link', icon: 'settings', label: 'Settings', to: '/profile' },
   ];
@@ -133,13 +134,22 @@ export default function SideNav({ activeTab, setActiveTab }) {
         </div>
 
         <div className="mt-auto flex flex-col items-center gap-0.5 w-full px-1.5" style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
-          {botItems.map((item, idx) => (
-            <div key={idx} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-              <NavLink to={item.to} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                {({ isActive }) => <Btn icon={item.icon} label={item.label} active={isActive} />}
-              </NavLink>
-            </div>
-          ))}
+          {botItems.map((item, idx) => {
+            if (item.type === 'action') {
+              return (
+                <div key={idx} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <Btn icon={item.icon} label={item.label} active={item.isActive} onClick={item.action} />
+                </div>
+              );
+            }
+            return (
+              <div key={idx} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <NavLink to={item.to} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  {({ isActive }) => <Btn icon={item.icon} label={item.label} active={isActive} />}
+                </NavLink>
+              </div>
+            );
+          })}
         </div>
       </nav>
     </>

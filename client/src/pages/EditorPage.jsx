@@ -141,9 +141,15 @@ export default function EditorPage() {
   const [roomPwd,     setRoomPwd]     = useState('');
   const [joining,     setJoining]     = useState(false);
 
-  // File system state
+   // File system state
   const [activePath,  setActivePath]  = useState(null);
   const [openPaths,   setOpenPaths]   = useState([]);
+
+  // Panel visibility & sizing
+  const [showExplorer, setShowExplorer] = useState(true);
+  const [showChat, setShowChat] = useState(true);
+  const [explorerWidth, setExplorerWidth] = useState(240);
+  const [chatWidth, setChatWidth] = useState(300);
 
 
 
@@ -483,6 +489,14 @@ export default function EditorPage() {
           {/* Dashboard */}
           <NavBtn icon="dashboard" title="Dashboard" onClick={() => navigate('/dashboard')} />
 
+          {/* Chat toggle */}
+          <NavBtn
+            icon="chat"
+            title="Toggle chat"
+            active={showChat}
+            onClick={() => setShowChat(!showChat)}
+          />
+
           {/* Self avatar */}
           <div
             title={user?.username}
@@ -495,30 +509,43 @@ export default function EditorPage() {
 
       {/* ══════════════════════ BODY ══════════════════════ */}
       <div style={{ display:'flex',flex:1,overflow:'hidden' }}>
-        <SideNav activeTab={activeTab} setActiveTab={setActiveTab} />
+        <SideNav activeTab={activeTab} setActiveTab={(tab) => {
+          if (tab === activeTab) {
+            setShowExplorer(v => !v);
+          } else {
+            setActiveTab(tab);
+            setShowExplorer(true);
+          }
+        }} showChat={showChat} setShowChat={setShowChat} />
 
         <main style={{ display:'flex',flex:1,overflow:'hidden' }}>
 
           {/* ── Sidebar panel (Explorer or GitHub) ── */}
-          <aside style={{ width:240,flexShrink:0,display:'flex',flexDirection:'column',background:'rgba(5,5,12,.98)',borderRight:'1px solid rgba(255,255,255,.05)' }}>
-            {activeTab === 'explorer' && (
-              <FileTree
-                roomId={roomId}
-                isOwner={user?._id === room?.ownerId}
-                activePath={activePath}
-                setActivePath={setActivePath}
-                openPaths={openPaths}
-                setOpenPaths={setOpenPaths}
-                refreshKey={fileTreeRefresh}
-              />
-            )}
-            {activeTab === 'github' && (
-              <GithubPanel 
-                roomId={roomId} 
-                onImportComplete={() => setFileTreeRefresh(r => r + 1)} 
-              />
-            )}
-          </aside>
+          {showExplorer && (
+            <>
+              <aside style={{ width: explorerWidth, minWidth: 160, maxWidth: 500, flexShrink:0, display:'flex', flexDirection:'column', background:'rgba(5,5,12,.98)', borderRight:'1px solid rgba(255,255,255,.05)' }}>
+                {activeTab === 'explorer' && (
+                  <FileTree
+                    roomId={roomId}
+                    isOwner={user?._id === room?.ownerId}
+                    activePath={activePath}
+                    setActivePath={setActivePath}
+                    openPaths={openPaths}
+                    setOpenPaths={setOpenPaths}
+                    refreshKey={fileTreeRefresh}
+                  />
+                )}
+                {activeTab === 'github' && (
+                  <GithubPanel 
+                    roomId={roomId} 
+                    onImportComplete={() => setFileTreeRefresh(r => r + 1)} 
+                  />
+                )}
+              </aside>
+              {/* Explorer resize handle */}
+              <ResizeHandle onDrag={(dx) => setExplorerWidth(w => Math.max(160, Math.min(500, w + dx)))} />
+            </>
+          )}
 
           {/* ── Editor + Terminal column ── */}
           <div style={{ display:'flex',flexDirection:'column',flex:1,minWidth:0,overflow:'hidden' }}>
@@ -630,8 +657,15 @@ export default function EditorPage() {
             )}
           </div>
 
-          {/* Chat */}
-          <ChatPanel roomId={roomId} socket={socket} user={user} users={users} />
+          {/* Chat panel with resize */}
+          {showChat && (
+            <>
+              <ResizeHandle onDrag={(dx) => setChatWidth(w => Math.max(200, Math.min(500, w - dx)))} />
+              <div style={{ width: chatWidth, flexShrink: 0 }}>
+                <ChatPanel roomId={roomId} socket={socket} user={user} users={users} />
+              </div>
+            </>
+          )}
         </main>
       </div>
 
@@ -687,5 +721,55 @@ function ExItem({ icon, label, color, active, indent=0 }) {
         {label}
       </span>
     </div>
+  );
+}
+
+/* ── Drag-to-resize handle between panels ── */
+function ResizeHandle({ onDrag }) {
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(null);
+
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    setDragging(true);
+    startX.current = e.clientX;
+
+    const handleMove = (me) => {
+      if (startX.current !== null) {
+        const dx = me.clientX - startX.current;
+        startX.current = me.clientX;
+        onDrag(dx);
+      }
+    };
+
+    const handleUp = () => {
+      setDragging(false);
+      startX.current = null;
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      style={{
+        width: 4,
+        cursor: 'col-resize',
+        background: dragging ? '#007ACC' : 'transparent',
+        flexShrink: 0,
+        transition: 'background .15s',
+        zIndex: 10,
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = '#007ACC'}
+      onMouseLeave={e => { if (!dragging) e.currentTarget.style.background = 'transparent'; }}
+    />
   );
 }
