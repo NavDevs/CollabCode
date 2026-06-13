@@ -171,11 +171,6 @@ export default function ChatPanel({ roomId, socket, user, users = [], onLeaveRoo
           <span style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB', letterSpacing: '.02em' }}>
             Team Chat
           </span>
-          {msgs.filter(m => m.type === 'message').length > 0 && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'rgba(139,92,246,.2)', color: '#A78BFA' }}>
-              {msgs.filter(m => m.type === 'message').length}
-            </span>
-          )}
         </div>
 
         {/* Tabs */}
