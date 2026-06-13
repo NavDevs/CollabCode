@@ -552,8 +552,11 @@ export default function EditorPage() {
 
             {/* Tab bar */}
             <div style={{ height:36,flexShrink:0,display:'flex',alignItems:'center',background:'rgba(5,5,12,.95)',borderBottom:'1px solid rgba(255,255,255,.05)', overflowX:'auto' }} className="scroll">
-              {openPaths.map(p => {
+            {openPaths.map(p => {
                 const isActive = activePath === p;
+                // Show folder/file for nested files, just filename for root
+                const parts = p.split('/').filter(Boolean);
+                const tabLabel = parts.length > 1 ? parts.slice(-2).join('/') : parts[parts.length - 1];
                 return (
                   <div
                     key={p}
@@ -563,10 +566,14 @@ export default function EditorPage() {
                       borderRight:'1px solid rgba(255,255,255,.05)',
                       background: isActive ? 'rgba(255,255,255,.06)' : 'transparent',
                       color: isActive ? '#F3F4F6' : '#6B7280',
-                      fontSize:13,fontWeight:500,cursor:'pointer',borderBottom: isActive ? '2px solid #F3F4F6' : '2px solid transparent'
+                      fontSize:13,fontWeight:500,cursor:'pointer',borderBottom: isActive ? '2px solid #F3F4F6' : '2px solid transparent',
+                      whiteSpace:'nowrap',
                     }}
                   >
-                    {p.split('/').pop()}
+                    {parts.length > 1 && (
+                      <span style={{ color: '#4B5563', fontSize: 12 }}>{parts.slice(0, -1).join('/') + '/'}</span>
+                    )}
+                    <span>{parts[parts.length - 1]}</span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
