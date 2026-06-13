@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -7,40 +7,82 @@ const os = require('os');
 const LANG_CONFIG = {
   javascript: {
     ext: 'js',
-    cmd: 'node',
-    args: (file) => [file],
+    run: (file, dir) => ({ cmd: 'node', args: [file] }),
   },
   typescript: {
     ext: 'ts',
-    cmd: 'node',
-    // ts-node might not be installed; fall back to plain node after stripping types
-    args: (file) => ['--input-type=module', file],
-    // Use ts-node if available
-    prefer: 'ts-node',
-    preferArgs: (file) => [file],
+    run: (file, dir) => ({ cmd: 'npx', args: ['ts-node', file] }),
+    fallback: (file, dir) => ({ cmd: 'node', args: [file] }),
   },
   python: {
     ext: 'py',
-    cmd: process.platform === 'win32' ? 'python' : 'python3',
-    args: (file) => [file],
+    run: (file, dir) => ({ cmd: 'python3', args: [file] }),
+    fallback: (file, dir) => ({ cmd: 'python', args: [file] }),
   },
   go: {
     ext: 'go',
-    cmd: 'go',
-    args: (file) => ['run', file],
+    run: (file, dir) => ({ cmd: 'go', args: ['run', file] }),
   },
   java: {
     ext: 'java',
-    // Java needs compile + run; skip for now — show helpful message
-    cmd: null,
+    // Compile then run: javac File.java && java File
+    compile: (file, dir) => ({ cmd: 'javac', args: [file] }),
+    run: (file, dir) => {
+      // Class name = filename without extension
+      const className = path.basename(file, '.java');
+      return { cmd: 'java', args: ['-cp', dir, className] };
+    },
   },
   cpp: {
     ext: 'cpp',
-    cmd: null, // requires gcc; show helpful message
+    // Compile then run: g++ file.cpp -o output && ./output
+    compile: (file, dir) => {
+      const outFile = path.join(dir, 'a.out');
+      return { cmd: 'g++', args: [file, '-o', outFile, '-std=c++17'] };
+    },
+    run: (file, dir) => {
+      const outFile = path.join(dir, 'a.out');
+      return { cmd: outFile, args: [] };
+    },
+  },
+  c: {
+    ext: 'c',
+    // Compile then run: gcc file.c -o output && ./output
+    compile: (file, dir) => {
+      const outFile = path.join(dir, 'a.out');
+      return { cmd: 'gcc', args: [file, '-o', outFile] };
+    },
+    run: (file, dir) => {
+      const outFile = path.join(dir, 'a.out');
+      return { cmd: outFile, args: [] };
+    },
+  },
+  rust: {
+    ext: 'rs',
+    compile: (file, dir) => {
+      const outFile = path.join(dir, 'a.out');
+      return { cmd: 'rustc', args: [file, '-o', outFile] };
+    },
+    run: (file, dir) => {
+      const outFile = path.join(dir, 'a.out');
+      return { cmd: outFile, args: [] };
+    },
+  },
+  ruby: {
+    ext: 'rb',
+    run: (file, dir) => ({ cmd: 'ruby', args: [file] }),
+  },
+  php: {
+    ext: 'php',
+    run: (file, dir) => ({ cmd: 'php', args: [file] }),
+  },
+  bash: {
+    ext: 'sh',
+    run: (file, dir) => ({ cmd: 'bash', args: [file] }),
   },
 };
 
-const TIMEOUT_MS = 10_000; // 10-second hard limit
+const TIMEOUT_MS = 15_000; // 15-second hard limit
 
 const WorkspaceFile = require('../models/WorkspaceFile');
 const yjsService = require('../services/yjs.service');
@@ -62,7 +104,11 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
   // Infer language from target file extension if possible
   const getLanguageFromExt = (filePath) => {
     const ext = filePath.split('.').pop().toLowerCase();
-    const map = { js: 'javascript', ts: 'typescript', py: 'python', go: 'go', java: 'java', cpp: 'cpp', c: 'cpp' };
+    const map = { 
+      js: 'javascript', ts: 'typescript', py: 'python', go: 'go', 
+      java: 'java', cpp: 'cpp', c: 'c', rs: 'rust', rb: 'ruby', 
+      php: 'php', sh: 'bash',
+    };
     return map[ext];
   };
 
@@ -74,11 +120,7 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
   // Unsupported language
   if (!cfg) {
     emit('stderr', `✗ Execution not supported for language: ${language}\n`);
-    io.to(roomId).emit('exec-done', { exitCode: 1, duration: 0, language, runner: user.username });
-    return;
-  }
-  if (!cfg.cmd) {
-    emit('stderr', `✗ ${language} execution is not yet configured on this server.\n`);
+    emit('stderr', `  Supported: JavaScript, TypeScript, Python, Java, C++, C, Go, Rust, Ruby, PHP, Bash\n`);
     io.to(roomId).emit('exec-done', { exitCode: 1, duration: 0, language, runner: user.username });
     return;
   }
@@ -106,9 +148,6 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
       // Get latest content from Yjs memory if available, otherwise fallback to DB
       let content = file.content;
       try {
-        const fileKey = `${roomId}:${file.path}`;
-        // Access docs map directly (we'll expose it or use a helper)
-        // Wait, the docs map isn't exported directly. Let's use getOrCreateDoc!
         const ydoc = await yjsService.getOrCreateDoc(roomId, file.path);
         content = ydoc.getText('monaco').toString() || file.content;
       } catch (e) {}
@@ -145,21 +184,70 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
   // Announce run start
   io.to(roomId).emit('exec-start', { language, runner: user.username, ts: Date.now() });
 
-  const cmd  = cfg.cmd;
-  const args = cfg.args(entryFileAbsPath);
+  const fileDir = path.dirname(entryFileAbsPath);
+
+  // ── COMPILE STEP (for Java, C++, C, Rust) ──
+  if (cfg.compile) {
+    const compileConfig = cfg.compile(entryFileAbsPath, fileDir);
+    emit('stdout', `⚙ Compiling ${path.basename(entryFileAbsPath)}...\n`);
+    
+    try {
+      const compileResult = await runProcess(compileConfig.cmd, compileConfig.args, fileDir, TIMEOUT_MS);
+      if (compileResult.stderr) {
+        emit('stderr', compileResult.stderr);
+      }
+      if (compileResult.exitCode !== 0) {
+        emit('stderr', `\n✗ Compilation failed with exit code ${compileResult.exitCode}\n`);
+        io.to(roomId).emit('exec-done', { exitCode: compileResult.exitCode, duration: Date.now() - started, language, runner: user.username });
+        cleanUpDir(runDir);
+        return;
+      }
+      if (compileResult.stdout) {
+        emit('stdout', compileResult.stdout);
+      }
+      emit('stdout', `✓ Compiled successfully\n\n`);
+    } catch (err) {
+      emit('stderr', `✗ Compiler not found: "${compileConfig.cmd}". Make sure ${language} is installed on the server.\n`);
+      io.to(roomId).emit('exec-done', { exitCode: 1, duration: Date.now() - started, language, runner: user.username });
+      cleanUpDir(runDir);
+      return;
+    }
+  }
+
+  // ── RUN STEP ──
+  const runConfig = cfg.run(entryFileAbsPath, fileDir);
+  let cmd = runConfig.cmd;
+  let args = runConfig.args;
 
   let child;
   try {
     child = spawn(cmd, args, {
       timeout: TIMEOUT_MS,
-      cwd: path.dirname(entryFileAbsPath), // Run from the file's directory
+      cwd: fileDir,
       env: { ...process.env, NODE_ENV: 'sandbox' },
     });
   } catch (err) {
-    emit('stderr', `✗ Could not start runtime "${cmd}": ${err.message}\n`);
-    io.to(roomId).emit('exec-done', { exitCode: 1, duration: 0, language, runner: user.username });
-    cleanUpDir(runDir);
-    return;
+    // Try fallback if available
+    if (cfg.fallback) {
+      const fb = cfg.fallback(entryFileAbsPath, fileDir);
+      try {
+        child = spawn(fb.cmd, fb.args, {
+          timeout: TIMEOUT_MS,
+          cwd: fileDir,
+          env: { ...process.env, NODE_ENV: 'sandbox' },
+        });
+      } catch (fbErr) {
+        emit('stderr', `✗ Could not start runtime "${cmd}" or "${fb.cmd}": ${fbErr.message}\n`);
+        io.to(roomId).emit('exec-done', { exitCode: 1, duration: 0, language, runner: user.username });
+        cleanUpDir(runDir);
+        return;
+      }
+    } else {
+      emit('stderr', `✗ Could not start runtime "${cmd}": ${err.message}\n`);
+      io.to(roomId).emit('exec-done', { exitCode: 1, duration: 0, language, runner: user.username });
+      cleanUpDir(runDir);
+      return;
+    }
   }
 
   // Stream stdout
@@ -186,6 +274,26 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
     cleanUpDir(runDir);
     emit('stderr', `✗ Runtime error: ${err.message}\n`);
     io.to(roomId).emit('exec-done', { exitCode: 1, duration: Date.now() - started, language, runner: user.username });
+  });
+}
+
+/**
+ * Run a process synchronously-ish and return { stdout, stderr, exitCode }
+ * Used for compile steps.
+ */
+function runProcess(cmd, args, cwd, timeout) {
+  return new Promise((resolve, reject) => {
+    try {
+      const child = spawn(cmd, args, { cwd, timeout });
+      let stdout = '';
+      let stderr = '';
+      child.stdout.on('data', d => stdout += d.toString());
+      child.stderr.on('data', d => stderr += d.toString());
+      child.on('close', code => resolve({ stdout, stderr, exitCode: code }));
+      child.on('error', err => reject(err));
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 

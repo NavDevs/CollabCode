@@ -14,8 +14,31 @@ import FileTree from '../components/FileTree';
 import RoomSettingsModal from '../components/RoomSettingsModal';
 import WebTerminal from '../components/WebTerminal';
 
-const EXT   = { python:'py',typescript:'ts',javascript:'js',html:'html',css:'css',go:'go',rust:'rs',java:'java',cpp:'cpp',ruby:'rb' };
-const ICON  = { javascript:'javascript',typescript:'javascript',python:'database',go:'bolt',html:'html',css:'css',rust:'memory',java:'terminal',cpp:'terminal' };
+const EXT   = { python:'py',typescript:'ts',javascript:'js',html:'html',css:'css',go:'go',rust:'rs',java:'java',cpp:'cpp',ruby:'rb',c:'c',php:'php',bash:'sh' };
+const ICON  = { javascript:'javascript',typescript:'javascript',python:'database',go:'bolt',html:'html',css:'css',rust:'memory',java:'terminal',cpp:'terminal',c:'terminal',ruby:'diamond',php:'php',bash:'terminal' };
+
+// Auto-detect language from file extension
+const EXT_TO_LANG = {
+  js:'javascript', jsx:'javascript', mjs:'javascript', cjs:'javascript',
+  ts:'typescript', tsx:'typescript',
+  py:'python', pyw:'python',
+  java:'java',
+  cpp:'cpp', cc:'cpp', cxx:'cpp', hpp:'cpp',
+  c:'c', h:'c',
+  go:'go',
+  rs:'rust',
+  rb:'ruby',
+  php:'php',
+  sh:'bash', bash:'bash',
+  html:'html', htm:'html',
+  css:'css', scss:'css', less:'css',
+  json:'json', md:'markdown', sql:'sql', xml:'xml', yaml:'yaml', yml:'yaml',
+};
+const getLangFromPath = (p) => {
+  if (!p) return 'javascript';
+  const ext = p.split('.').pop()?.toLowerCase();
+  return EXT_TO_LANG[ext] || 'plaintext';
+};
 const PCLR  = ['#F3F4F6','#34D399','#60A5FA','#FBBF24','#FB7185','#22D3EE','#F97316','#E879F9'];
 
 /* ── Keybinding hint ── */
@@ -232,7 +255,7 @@ export default function EditorPage() {
     const code = editorRef.current?.getValue() ?? '';
     if (!code.trim()) { toast.error('Nothing to run.'); return; }
     setShowTerminal(true);
-    socket.emit('code-execute', { roomId, path: activePath, language: room?.language || 'javascript' });
+    socket.emit('code-execute', { roomId, path: activePath, language: getLangFromPath(activePath) });
   }, [running, socket, connected, roomId, room, activePath]);
 
   /* ── Keyboard shortcut: Ctrl+Enter / Cmd+Enter ── */
@@ -497,7 +520,7 @@ export default function EditorPage() {
               <div style={{ flex:1, position:'relative' }}>
                 <Editor
                   ref={editorRef}
-                  language={room?.language||'javascript'}
+                  language={getLangFromPath(activePath)}
                   readOnly={isReadOnly}
                   value={code}
                   onChange={val => {
