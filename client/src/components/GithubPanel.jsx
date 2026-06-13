@@ -55,11 +55,19 @@ export default function GithubPanel({ roomId, onImportComplete }) {
     }
   };
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     const baseUrl = import.meta.env.VITE_API_URL || '/api';
     const apiOrigin = baseUrl.replace('/api', '');
-    const authUrl = `${apiOrigin}/api/github/auth`;
-    window.location.href = authUrl;
+    // Get current Clerk token to pass as query param (full-page redirect can't send Bearer header)
+    try {
+      const { data } = await api.get('/github/auth-url');
+      window.location.href = data.url;
+    } catch {
+      // Fallback: redirect directly with token from api interceptor
+      const token = api.defaults.headers?.common?.['Authorization']?.replace('Bearer ', '') || '';
+      const authUrl = `${apiOrigin}/api/github/auth?token=${token}`;
+      window.location.href = authUrl;
+    }
   };
 
   const handleDisconnect = async () => {

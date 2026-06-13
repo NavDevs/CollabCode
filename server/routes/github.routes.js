@@ -54,10 +54,24 @@ router.post(
 // ─── OAuth Flow ───────────────────────────────────────────────────────────────
 
 /**
+ * GET /api/github/auth-url
+ *
+ * Returns the GitHub OAuth URL as JSON (called via AJAX with Bearer token).
+ */
+router.get('/auth-url', auth, (req, res) => {
+  if (!gitConfig.isConfigured()) {
+    return res.status(503).json({ error: 'GitHub integration is not configured.' });
+  }
+  const state = `${req.user._id.toString()}_${crypto.randomBytes(8).toString('hex')}`;
+  const url = githubService.getAuthorizationUrl(state);
+  return res.json({ url });
+});
+
+/**
  * GET /api/github/auth
  *
  * Initiates the GitHub OAuth flow by redirecting the user to GitHub.
- * Query parameter `token` contains the JWT token.
+ * Accepts token via query parameter for full-page redirect fallback.
  */
 router.get('/auth', auth, (req, res) => {
   if (!gitConfig.isConfigured()) {

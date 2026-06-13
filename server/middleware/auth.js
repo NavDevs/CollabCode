@@ -16,6 +16,15 @@ const syncUser = async (req, res, next) => {
         console.log("Manual verification failed:", e.message);
       }
     }
+    // Fallback: check query param token (for full-page redirects like GitHub OAuth)
+    if (!clerkId && req.query?.token) {
+      try {
+        const decoded = await verifyToken(req.query.token, { secretKey: process.env.CLERK_SECRET_KEY });
+        clerkId = decoded.sub;
+      } catch (e) {
+        console.log("Query token verification failed:", e.message);
+      }
+    }
 
     if (!clerkId) {
       return res.status(401).json({ error: 'Unauthorized' });
