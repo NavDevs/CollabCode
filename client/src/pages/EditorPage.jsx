@@ -364,8 +364,13 @@ export default function EditorPage() {
       }
     });
 
+    /* Room metadata changes (e.g. title after import) */
+    socket.on('room-updated', (updates) => {
+      setRoom(prev => prev ? { ...prev, ...updates } : prev);
+    });
+
     return () => {
-      ['room-users','user-joined','user-left','cursor-updated','exec-start','exec-done','workspace-updated']
+      ['room-users','user-joined','user-left','cursor-updated','exec-start','exec-done','workspace-updated','room-updated']
         .forEach(e => socket.off(e));
     };
   }, [socket, connected, roomId]);

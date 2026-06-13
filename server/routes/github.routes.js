@@ -297,11 +297,12 @@ router.post('/room/:roomId/import', auth, async (req, res) => {
       token
     );
 
-    // Save the repo name to the room
+    // Save the repo name to the room and update title to repo name
     room.githubRepo = repoFullName;
+    room.title = repoFullName.split('/').pop() || room.title;
     await room.save();
 
-    // Broadcast to all room members so their file trees refresh
+    // Broadcast to all room members so their file trees refresh + title updates
     try {
       const io = req.app.get('io');
       if (io) {
@@ -312,6 +313,10 @@ router.post('/room/:roomId/import', auth, async (req, res) => {
           repoFullName,
           timestamp: Date.now(),
           filesImported: result?.imported || 0,
+        });
+        io.in(roomId).emit('room-updated', {
+          title: room.title,
+          githubRepo: room.githubRepo,
         });
       }
     } catch (e) { /* ignore */ }
