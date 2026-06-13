@@ -62,7 +62,8 @@ router.get('/auth-url', auth, (req, res) => {
   if (!gitConfig.isConfigured()) {
     return res.status(503).json({ error: 'GitHub integration is not configured.' });
   }
-  const state = `${req.user._id.toString()}_${crypto.randomBytes(8).toString('hex')}`;
+  const roomId = req.query.roomId || '';
+  const state = `${req.user._id.toString()}_${crypto.randomBytes(8).toString('hex')}_${roomId}`;
   const url = githubService.getAuthorizationUrl(state);
   return res.json({ url });
 });
@@ -80,8 +81,8 @@ router.get('/auth', auth, (req, res) => {
       .json({ error: 'GitHub integration is not configured.' });
   }
 
-  // Generate a CSRF state token tied to the user's ID
-  const state = `${req.user._id.toString()}_${crypto.randomBytes(8).toString('hex')}`;
+  const roomId = req.query.roomId || '';
+  const state = `${req.user._id.toString()}_${crypto.randomBytes(8).toString('hex')}_${roomId}`;
 
   const url = githubService.getAuthorizationUrl(state);
   return res.redirect(url);
@@ -102,7 +103,11 @@ router.get('/callback', async (req, res) => {
       return res.redirect(`${clientUrl}/dashboard?github=error&msg=missing_code`);
     }
 
-    const userId = state ? state.split('_')[0] : null;
+    // state format: userId_randomHex_roomId (roomId may be empty)
+    const parts = state ? state.split('_') : [];
+    const userId = parts[0] || null;
+    const roomId = parts.length >= 3 ? parts.slice(2).join('_') : '';
+
     if (!userId) {
       return res.redirect(`${clientUrl}/dashboard?github=error&msg=invalid_state`);
     }
@@ -116,6 +121,10 @@ router.get('/callback', async (req, res) => {
       githubAccessToken: accessToken,
     });
 
+    // Redirect back to the editor room if one was stored, otherwise dashboard
+    if (roomId) {
+      return res.redirect(`${clientUrl}/editor/${roomId}?github=connected`);
+    }
     return res.redirect(`${clientUrl}/dashboard?github=connected`);
   } catch (error) {
     console.error('GitHub OAuth callback error:', error.message);
@@ -271,16 +280,21 @@ router.post('/room/:roomId/import', auth, async (req, res) => {
     const room = await Room.findOne({ roomId });
     if (!room) return res.status(404).json({ error: 'Room not found.' });
 
-    const owner = await User.findById(room.ownerId);
-    if (!owner || !owner.githubAccessToken) {
-      return res.status(401).json({ error: 'The room owner has not connected their GitHub account.' });
+    // Use current user's token first, fall back to room owner's
+    let token = req.user.githubAccessToken;
+    if (!token) {
+      const owner = await User.findById(room.ownerId);
+      token = owner?.githubAccessToken;
+    }
+    if (!token) {
+      return res.status(401).json({ error: 'Please connect your GitHub account first. Go to the GitHub tab in the sidebar.' });
     }
 
     const result = await githubService.importRepoToWorkspace(
       roomId,
       repoFullName,
       branch || 'main',
-      owner.githubAccessToken
+      token
     );
 
     // Save the repo name to the room
@@ -310,9 +324,14 @@ router.post('/room/:roomId/push-all', auth, async (req, res) => {
     const room = await Room.findOne({ roomId });
     if (!room) return res.status(404).json({ error: 'Room not found.' });
 
-    const owner = await User.findById(room.ownerId);
-    if (!owner || !owner.githubAccessToken) {
-      return res.status(401).json({ error: 'The room owner has not connected their GitHub account.' });
+    // Use current user's token first, fall back to room owner's
+    let token = req.user.githubAccessToken;
+    if (!token) {
+      const owner = await User.findById(room.ownerId);
+      token = owner?.githubAccessToken;
+    }
+    if (!token) {
+      return res.status(401).json({ error: 'Please connect your GitHub account first. Go to the GitHub tab in the sidebar.' });
     }
 
     const result = await githubService.pushWorkspaceToRepo(
@@ -320,7 +339,7 @@ router.post('/room/:roomId/push-all', auth, async (req, res) => {
       repoFullName,
       commitMessage,
       branch || 'main',
-      owner.githubAccessToken
+      token
     );
 
     return res.status(200).json({ message: 'Workspace pushed successfully', result });

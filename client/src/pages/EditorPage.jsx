@@ -193,6 +193,14 @@ export default function EditorPage() {
   /* ── Load room ── */
   useEffect(() => {
     load();
+
+    // Handle GitHub OAuth return
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('github') === 'connected') {
+      toast.success('GitHub connected! You can now import & push repos.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
     return () => { if (socket && roomId) leaveRoom(roomId); };
   }, [roomId]);
 

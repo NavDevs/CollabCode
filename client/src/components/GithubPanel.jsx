@@ -58,7 +58,7 @@ export default function GithubPanel({ roomId, onImportComplete }) {
   const handleConnect = async () => {
     try {
       // Primary: call auth-url with Bearer token via Axios interceptor
-      const { data } = await api.get('/github/auth-url');
+      const { data } = await api.get(`/github/auth-url?roomId=${roomId || ''}`);
       window.location.href = data.url;
     } catch (err) {
       // Fallback: get Clerk token directly and pass in query param
@@ -76,7 +76,7 @@ export default function GithubPanel({ roomId, onImportComplete }) {
       }
       const baseUrl = import.meta.env.VITE_API_URL || '/api';
       const apiOrigin = baseUrl.replace('/api', '');
-      window.location.href = `${apiOrigin}/api/github/auth?token=${token}`;
+      window.location.href = `${apiOrigin}/api/github/auth?token=${token}&roomId=${roomId || ''}`;
     }
   };
 
