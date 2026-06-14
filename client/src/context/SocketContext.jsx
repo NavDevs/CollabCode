@@ -11,7 +11,7 @@ export const useSocket = () => useContext(SocketContext);
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';
 
 export function SocketProvider({ children }) {
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, getToken } = useAuth();
   const socketRef = useRef(null);
   const [connected, setConnected] = useState(false);
 
@@ -29,7 +29,13 @@ export function SocketProvider({ children }) {
     }
 
     const socket = io(SOCKET_URL, {
-      auth: { token },
+      auth: (cb) => {
+        if (typeof getToken === 'function') {
+          getToken().then(t => cb({ token: t })).catch(() => cb({ token }));
+        } else {
+          cb({ token });
+        }
+      },
       transports: ['websocket', 'polling'],
       // ─── Aggressive reconnection to keep user connected ───
       reconnection: true,

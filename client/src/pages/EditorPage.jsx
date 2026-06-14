@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Y from 'yjs';
 import { MonacoBinding } from 'y-monaco';
+import { Awareness } from 'y-protocols/awareness';
+import * as awarenessProtocol from 'y-protocols/awareness';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -140,7 +142,6 @@ export default function EditorPage() {
   const [code,        setCode]        = useState('');
   const [loading,     setLoading]     = useState(true);
   const [users,       setUsers]       = useState([]);
-  const [cursors,     setCursors]     = useState({});
   const [pos,         setPos]         = useState({ line:1, col:1 });
   const [running,     setRunning]     = useState(false);
   const [showTerminal,setShowTerminal]= useState(false);
@@ -245,6 +246,7 @@ export default function EditorPage() {
     const ytext = ydoc.getText('monaco');
     let cancelled = false;
     let gotContent = false; // track if we received content
+    const awarenessRef = useRef(null);
 
     const attachBinding = () => {
       if (cancelled) return;
@@ -253,7 +255,21 @@ export default function EditorPage() {
         if (bindingRef.current) bindingRef.current.destroy();
         
         if (isReadOnlyRef.current) editor.updateOptions({ readOnly: false });
-        bindingRef.current = new MonacoBinding(ytext, editor.getModel(), new Set([editor]), null);
+        
+        if (!awarenessRef.current) {
+          awarenessRef.current = new Awareness(ydoc);
+          awarenessRef.current.setLocalStateField('user', {
+            name: user?.username || 'Guest',
+            color: user?.avatarColor || '#3B82F6'
+          });
+          awarenessRef.current.on('update', ({ added, updated, removed }) => {
+            const changedClients = added.concat(updated).concat(removed);
+            const update = awarenessProtocol.encodeAwarenessUpdate(awarenessRef.current, changedClients);
+            socket.emit('yjs-awareness-update', { roomId, path: activePathRef.current, update: Array.from(update) });
+          });
+        }
+        
+        bindingRef.current = new MonacoBinding(ytext, editor.getModel(), new Set([editor]), awarenessRef.current);
         if (isReadOnlyRef.current) editor.updateOptions({ readOnly: true });
         
         ydoc.on('update', (update, origin) => {
@@ -338,17 +354,18 @@ export default function EditorPage() {
     };
 
     const handleUpdate = ({ roomId: r, path: p, update }) => {
-      if (r !== roomId || p !== activePath || cancelled) return;
-      if (update) {
-        const editor = editorRef.current?.getEditor?.();
-        if (editor && isReadOnlyRef.current) editor.updateOptions({ readOnly: false });
+      if (r !== roomId || p !== activePath || cancelled || !gotContent) return;
+      const editor = editorRef.current?.getEditor?.();
+      if (editor && isReadOnlyRef.current) editor.updateOptions({ readOnly: false });
 
-        Y.applyUpdate(ydoc, new Uint8Array(update), 'remote');
+      Y.applyUpdate(ydoc, new Uint8Array(update), 'remote');
 
-        if (editor && isReadOnlyRef.current) editor.updateOptions({ readOnly: true });
-        
-        fileCacheRef.current[activePath] = ytext.toString();
-      }
+      if (editor && isReadOnlyRef.current) editor.updateOptions({ readOnly: true });
+    };
+
+    const handleAwarenessUpdate = ({ roomId: r, path: p, update }) => {
+      if (r !== roomId || p !== activePathRef.current || !awarenessRef.current) return;
+      awarenessProtocol.applyAwarenessUpdate(awarenessRef.current, new Uint8Array(update), 'remote');
     };
 
     const fallbackTimer = setTimeout(() => {
@@ -360,23 +377,18 @@ export default function EditorPage() {
 
     socket.on('yjs-sync-init', handleSyncInit);
     socket.on('yjs-update', handleUpdate);
+    socket.on('yjs-awareness-update', handleAwarenessUpdate);
 
     return () => {
       cancelled = true;
       clearTimeout(fallbackTimer);
-      if (bindingRef.current) {
-        bindingRef.current.destroy();
-        bindingRef.current = null;
-      }
-      // Cache current content before leaving
-      const currentContent = editorRef.current?.getValue?.();
-      if (currentContent) {
-        fileCacheRef.current[activePath] = currentContent;
-      }
+      clearTimeout(window.__saveTimer);
+      if (bindingRef.current) bindingRef.current.destroy();
+      if (awarenessRef.current) awarenessRef.current.destroy();
+      ydoc.destroy();
       socket.off('yjs-sync-init', handleSyncInit);
       socket.off('yjs-update', handleUpdate);
-      ydoc.destroy();
-      ydocRef.current = null;
+      socket.off('yjs-awareness-update', handleAwarenessUpdate);
     };
   }, [socket, connected, roomId, activePath]);
 
@@ -421,11 +433,6 @@ export default function EditorPage() {
 
     // Individual leave — cleanup cursors, show toast (server also sends room-users after this)
     socket.on('user-left', u => {
-      setCursors(prev => {
-        const next = { ...prev };
-        delete next[u.userId];
-        return next;
-      });
       if (u.userId !== user?._id) {
         toast(`${u.username} left`, { icon: '👋', id: `leave-${u.userId}` });
       }
@@ -434,10 +441,6 @@ export default function EditorPage() {
     socket.on('terminal-visibility-change', ({ showTerminal }) => {
       setShowTerminal(showTerminal);
     });
-
-    socket.on('cursor-updated', ({ userId, username, avatarColor, path, cursor }) =>
-      setCursors(p => ({ ...p, [userId]: { username, avatarColor, path, cursor } }))
-    );
 
     /* Execution events */
     socket.on('exec-start', () => { setRunning(true); setShowTerminal(true); });
@@ -476,7 +479,7 @@ export default function EditorPage() {
     });
 
     return () => {
-      ['room-users','user-joined','user-left','cursor-updated','exec-start','exec-done','workspace-updated','room-updated','write-access-changed']
+      ['room-users','user-joined','user-left','exec-start','exec-done','workspace-updated','room-updated','write-access-changed']
         .forEach(e => socket.off(e));
     };
   }, [socket, connected, roomId, user]);
@@ -503,11 +506,10 @@ export default function EditorPage() {
   };
 
   /* ── Cursor broadcast ── */
-  const onCursor = useCallback(p => {
-    setPos({ line:p.lineNumber, col:p.column });
-    if (socket && connected && activePath)
-      socket.emit('cursor-change', { roomId, path: activePath, cursor:{line:p.lineNumber,col:p.column} });
-  }, [socket, connected, roomId, activePath]);
+  /* ── Cursor sync (deprecated, using awareness) ── */
+  const onCursor = (e) => {
+    // Left for backwards compatibility if needed, but no longer used for rendering overlay
+  };
 
   /* ── Run code ── */
   const runCode = useCallback(() => {
@@ -893,45 +895,6 @@ export default function EditorPage() {
                   value={code}
                   onCursorChange={onCursor}
                 />
-
-                {/* Remote cursors overlay */}
-                {Object.entries(cursors).map(([uid,d]) => {
-                  if (d.path !== activePath) return null;
-                  if (uid === user?._id) return null; // Don't show local user's own cursor
-                  
-                  return (
-                  <div
-                    key={uid}
-                    className="pointer-events-none"
-                    style={{
-                      position: 'absolute',
-                      top: `${(d.cursor.line - 1) * 22 + 20}px`,
-                      left: `${(d.cursor.col - 1) * 8.4 + 58}px`,
-                      zIndex: 10,
-                      transition: 'top 0.1s ease-out, left 0.1s ease-out'
-                    }}
-                  >
-                    {/* Caret Line */}
-                    <div style={{ width: 2, height: 22, background: d.avatarColor }} />
-                    {/* Name Tag */}
-                    <div style={{
-                      position: 'absolute',
-                      top: 22,
-                      left: 2,
-                      padding: '2px 8px',
-                      borderRadius: '0px 6px 6px 6px',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: '#fff',
-                      background: d.avatarColor,
-                      whiteSpace: 'nowrap',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                      letterSpacing: '0.2px'
-                    }}>
-                      {d.username}
-                    </div>
-                  </div>
-                )})}
               </div>
             </div>
 

@@ -79,7 +79,8 @@ export function AuthProvider({ children }) {
         login, 
         register, 
         logout, 
-        isAuthenticated: !!dbUser 
+        isAuthenticated: !!dbUser,
+        getToken,
       }}
     >
       {children}
