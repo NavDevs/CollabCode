@@ -23,10 +23,10 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  // 'message' = regular chat, 'system' = join/leave/disconnect
+  // 'message' = regular chat, 'system' = join/leave/disconnect, 'permission_*' = access control
   type: {
     type: String,
-    enum: ['message', 'system'],
+    enum: ['message', 'system', 'permission_request', 'permission_granted', 'permission_rejected'],
     default: 'message',
   },
   timestamp: {
