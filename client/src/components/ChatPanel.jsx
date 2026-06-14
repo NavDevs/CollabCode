@@ -99,11 +99,65 @@ export default function ChatPanel({ room, roomId, socket, user, users = [], onLe
     bottom.current?.scrollIntoView({ behavior:'smooth' });
   }, [msgs]);
 
-  const handleTyping = () => {
+  const handleTypingLocal = () => {
     if (!socket || !user) return;
     clearTimeout(typingTimer.current);
     socket.emit('user-typing', { roomId, username: user.username });
   };
+
+  useEffect(() => {
+    if (mentionState?.type === '#' && files.length === 0) {
+      api.get(`/workspaces/${roomId}/files`).then(res => {
+        setFiles((res.data?.files || []).map(f => f.path.replace(/^\//, '')));
+      }).catch(() => {});
+    }
+  }, [mentionState?.type, files.length, roomId]);
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setInput(val);
+    handleTypingLocal();
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.substring(0, cursor);
+    const match = textBeforeCursor.match(/(^|\s)([@#])([\w.-]*)$/);
+    if (match) {
+      setMentionState({
+        type: match[2],
+        query: match[3].toLowerCase(),
+        startIdx: match.index + match[1].length
+      });
+    } else {
+      setMentionState(null);
+    }
+  };
+
+  const insertMention = (replacement) => {
+    if (!mentionState) return;
+    const before = input.substring(0, mentionState.startIdx);
+    const after = input.substring(mentionState.startIdx + mentionState.type.length + mentionState.query.length);
+    const newText = before + mentionState.type + replacement + ' ' + after;
+    setInput(newText);
+    setMentionState(null);
+    const ta = document.getElementById('chat-textarea');
+    if (ta) {
+      ta.focus();
+      setTimeout(() => { ta.selectionStart = ta.selectionEnd = before.length + mentionState.type.length + replacement.length + 1; }, 0);
+    }
+  };
+
+  const mentionOptions = (() => {
+    if (!mentionState) return [];
+    if (mentionState.type === '@') {
+      const activeUsernames = Array.from(new Set(users.map(u => u.username).filter(Boolean)));
+      return activeUsernames.filter(u => u.toLowerCase().includes(mentionState.query));
+    } else if (mentionState.type === '#') {
+      return files.filter(f => f.toLowerCase().includes(mentionState.query));
+    }
+    return [];
+  })();
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
