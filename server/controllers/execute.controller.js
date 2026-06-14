@@ -2,6 +2,7 @@ const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const killTree = require('tree-kill');
 
 // Track running processes per room so they can be stopped
 const runningProcesses = new Map();
@@ -185,7 +186,7 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
 
   // Kill any existing execution for this room
   if (runningProcesses.has(roomId)) {
-    try { runningProcesses.get(roomId).kill('SIGKILL'); } catch {}
+    try { killTree(runningProcesses.get(roomId).pid, 'SIGKILL'); } catch {}
     runningProcesses.delete(roomId);
   }
 
@@ -307,7 +308,7 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
   // Timeout for SHORT scripts only (30s) — cancelled when server detected
   const killer = setTimeout(() => {
     if (!isLongRunning) {
-      child.kill('SIGKILL');
+      try { killTree(child.pid, 'SIGKILL'); } catch {}
       emit('stderr', `\n✗ Script timed out after 30s (not a server). Use the terminal for long-running processes.\n`);
     }
   }, 30_000);
@@ -334,12 +335,11 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
 function stopExecution(io, roomId) {
   const child = runningProcesses.get(roomId);
   if (child) {
-    try { child.kill('SIGTERM'); } catch {}
-    // Force kill after 3s if still alive
-    setTimeout(() => {
-      try { child.kill('SIGKILL'); } catch {}
-    }, 3000);
+    try { killTree(child.pid, 'SIGKILL'); } catch {}
+    runningProcesses.delete(roomId);
+    
     io.to(roomId).emit('exec-output', { type: 'stderr', data: '\n✗ Execution stopped by user\n', ts: Date.now() });
+    io.to(roomId).emit('exec-done', { exitCode: 0, duration: 0, language: 'killed', runner: 'system' });
   }
 }
 
