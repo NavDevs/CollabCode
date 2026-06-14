@@ -7,7 +7,6 @@ const {
   getUserRooms,
   leaveRoom,
   updateRoomSettings,
-  updateRoomSettings,
   getRoomMessages,
   deleteRoom,
   updateWriteAccess,
