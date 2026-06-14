@@ -125,17 +125,56 @@ function registerTerminalHandler(io, socket) {
           COLORTERM: 'truecolor',
         };
 
-        if (commandExists('script')) {
-          proc = spawn('script', ['-qfc', `bash --rcfile "${bashrcPath}" -i`, '/dev/null'], {
+        let isPty = false;
+        try {
+          const pty = require('node-pty');
+          const shell = isWin ? 'powershell.exe' : 'bash';
+          const args = isWin ? ['-NoLogo'] : ['--rcfile', bashrcPath, '-i'];
+          
+          proc = pty.spawn(shell, args, {
+            name: 'xterm-256color',
+            cols: 80,
+            rows: 24,
             cwd: workDir,
-            env: shellEnv,
+            env: shellEnv
           });
-        } else {
-          proc = spawn('bash', ['--rcfile', bashrcPath, '-i'], {
-            cwd: workDir,
-            env: shellEnv,
-            stdio: ['pipe', 'pipe', 'pipe'],
+          isPty = true;
+          
+          proc.onData((data) => {
+            // Check for EADDRINUSE (Port clash) in merged output
+            if (data.includes('EADDRINUSE')) {
+              const match = data.match(/address already in use :::(\d+)/);
+              const port = match ? match[1] : 'that port';
+              io.to(roomId).emit('terminal-output', `\r\n\x1b[1;31m❌ PORT CONFLICT ERROR: Port ${port} is currently being used by another room!\x1b[0m\r\n`);
+              io.to(roomId).emit('terminal-output', `\x1b[33m💡 Fix: Simply change the port number in your code (e.g. use 8081, 8082) or stop the server in your other room.\x1b[0m\r\n\r\n`);
+            }
+            io.to(roomId).emit('terminal-output', data);
+            checkForPorts(data);
           });
+          
+          proc.onExit(({ exitCode }) => {
+            syncFilesFromDisk(roomId, workDir).catch(() => {});
+            io.to(roomId).emit('terminal-output', `\r\n\x1b[90m[Session ended with code ${exitCode}]\x1b[0m\r\n`);
+            terminalSessions.delete(socket.id);
+          });
+          
+          // Map standard properties to node-pty equivalents so the rest of the code works transparently
+          proc.stdin = { write: (d) => proc.write(d) };
+          
+        } catch (ptyErr) {
+          // Fallback to standard spawn if node-pty fails or isn't installed
+          if (commandExists('script')) {
+            proc = spawn('script', ['-qfc', `bash --rcfile "${bashrcPath}" -i`, '/dev/null'], {
+              cwd: workDir,
+              env: shellEnv,
+            });
+          } else {
+            proc = spawn(isWin ? 'powershell.exe' : 'bash', isWin ? ['-NoLogo'] : ['--rcfile', bashrcPath, '-i'], {
+              cwd: workDir,
+              env: shellEnv,
+              stdio: ['pipe', 'pipe', 'pipe'],
+            });
+          }
         }
       }
     } catch (err) {
@@ -172,43 +211,40 @@ function registerTerminalHandler(io, socket) {
       }
     }
 
-    // Stream stdout
-    proc.stdout.on('data', (data) => {
-      const text = data.toString('utf8');
-      io.to(roomId).emit('terminal-output', text);
-      checkForPorts(text);
-    });
+    // Only attach these if we used the standard spawn fallback
+    if (proc.stdout) {
+      proc.stdout.on('data', (data) => {
+        const text = data.toString('utf8');
+        io.to(roomId).emit('terminal-output', text);
+        checkForPorts(text);
+      });
 
-    // Stream stderr
-    proc.stderr.on('data', (data) => {
-      const text = data.toString('utf8');
-      
-      // Check for EADDRINUSE (Port clash)
-      if (text.includes('EADDRINUSE')) {
-        const match = text.match(/address already in use :::(\d+)/);
-        const port = match ? match[1] : 'that port';
-        io.to(roomId).emit('terminal-output', `\r\n\x1b[1;31m❌ PORT CONFLICT ERROR: Port ${port} is currently being used by another room!\x1b[0m\r\n`);
-        io.to(roomId).emit('terminal-output', `\x1b[33m💡 Fix: Simply change the port number in your code (e.g. use 8081, 8082) or stop the server in your other room.\x1b[0m\r\n\r\n`);
-      }
-      
-      io.to(roomId).emit('terminal-output', text);
-      checkForPorts(text);
-    });
+      proc.stderr.on('data', (data) => {
+        const text = data.toString('utf8');
+        if (text.includes('EADDRINUSE')) {
+          const match = text.match(/address already in use :::(\d+)/);
+          const port = match ? match[1] : 'that port';
+          io.to(roomId).emit('terminal-output', `\r\n\x1b[1;31m❌ PORT CONFLICT ERROR: Port ${port} is currently being used by another room!\x1b[0m\r\n`);
+          io.to(roomId).emit('terminal-output', `\x1b[33m💡 Fix: Simply change the port number in your code (e.g. use 8081, 8082) or stop the server in your other room.\x1b[0m\r\n\r\n`);
+        }
+        io.to(roomId).emit('terminal-output', text);
+        checkForPorts(text);
+      });
 
-    // Handle exit
-    proc.on('close', (code) => {
-      syncFilesFromDisk(roomId, workDir).catch(() => {});
-      io.to(roomId).emit('terminal-output', `\r\n\x1b[90m[Session ended with code ${code}]\x1b[0m\r\n`);
-      terminalSessions.delete(socket.id);
-    });
+      proc.on('close', (code) => {
+        syncFilesFromDisk(roomId, workDir).catch(() => {});
+        io.to(roomId).emit('terminal-output', `\r\n\x1b[90m[Session ended with code ${code}]\x1b[0m\r\n`);
+        terminalSessions.delete(socket.id);
+      });
 
-    proc.on('error', (err) => {
-      io.to(roomId).emit('terminal-output', `\r\n\x1b[31m[Terminal error: ${err.message}]\x1b[0m\r\n`);
-      terminalSessions.delete(socket.id);
-    });
+      proc.on('error', (err) => {
+        io.to(roomId).emit('terminal-output', `\r\n\x1b[31m[Terminal error: ${err.message}]\x1b[0m\r\n`);
+        terminalSessions.delete(socket.id);
+      });
+    }
 
     io.to(roomId).emit('terminal-ready');
-    console.log(`📟 Terminal started for ${socket.user?.username || 'unknown'} in room ${roomId} (${fileCount} files)`);
+    console.log(`📟 Terminal started for ${socket.user?.username || 'unknown'} in room ${roomId}`);
   });
 
   // Re-sync files from DB to disk
@@ -234,7 +270,14 @@ function registerTerminalHandler(io, socket) {
 
   // Resize terminal
   socket.on('terminal-resize', ({ cols, rows }) => {
-    // Terminal resize requires node-pty, skipped for now
+    const session = terminalSessions.get(socket.id);
+    if (session && session.process && typeof session.process.resize === 'function') {
+      try {
+        session.process.resize(cols, rows);
+      } catch (err) {
+        console.error('[terminal] resize error:', err.message);
+      }
+    }
   });
 
   // Kill terminal
