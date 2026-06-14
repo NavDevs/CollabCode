@@ -263,6 +263,8 @@ export default function EditorPage() {
             color: user?.avatarColor || '#3B82F6'
           });
           awareness.on('update', ({ added, updated, removed }) => {
+            // Only broadcast cursors if the user has write access
+            if (isReadOnlyRef.current) return;
             const changedClients = added.concat(updated).concat(removed);
             const update = awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients);
             socket.emit('yjs-awareness-update', { roomId, path: activePathRef.current, update: Array.from(update) });

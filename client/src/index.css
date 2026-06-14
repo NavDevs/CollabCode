@@ -94,3 +94,28 @@ body {
   font-size: 11px;
   pointer-events: none;
 }
+
+/* Yjs Monaco Cursors */
+.yRemoteSelection {
+  background-color: rgb(250, 129, 0, 0.5);
+}
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: 2px solid orange;
+  border-top: 2px solid orange;
+  border-bottom: 2px solid orange;
+  height: 100%;
+  box-sizing: border-box;
+}
+.yRemoteSelectionHead::after {
+  position: absolute;
+  content: attr(data-clientid);
+  top: -16px;
+  left: -2px;
+  background-color: orange;
+  color: white;
+  font-size: 11px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
