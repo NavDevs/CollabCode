@@ -54,12 +54,13 @@ export default function ChatPanel({ roomId, socket, user, users = [], onLeaveRoo
     const handleSystem = m => {
       setMsgs(p => {
         // Prevent duplicate system messages within 2 seconds
+        const msgType = m.type || 'system';
         const isDupe = p.some(
-          prev => prev.type === 'system' && prev.username === m.username
+          prev => prev.type === msgType && prev.username === m.username
             && prev.message === m.message && Math.abs(prev.timestamp - m.timestamp) < 2000
         );
         if (isDupe) return p;
-        return [...p, { ...m, type: 'system', id: `sys-${m.timestamp}-${m.userId}` }];
+        return [...p, { ...m, type: msgType, id: `sys-${m.timestamp}-${m.userId}` }];
       });
     };
 
