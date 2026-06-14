@@ -13,6 +13,7 @@ import GithubPanel from '../components/GithubPanel';
 import FileTree from '../components/FileTree';
 import RoomSettingsModal from '../components/RoomSettingsModal';
 import WebTerminal from '../components/WebTerminal';
+import { useMobile } from '../hooks/useMobile';
 
 const EXT   = { python:'py',typescript:'ts',javascript:'js',html:'html',css:'css',go:'go',rust:'rs',java:'java',cpp:'cpp',ruby:'rb',c:'c',php:'php',bash:'sh' };
 const ICON  = { javascript:'javascript',typescript:'javascript',python:'database',go:'bolt',html:'html',css:'css',rust:'memory',java:'terminal',cpp:'terminal',c:'terminal',ruby:'diamond',php:'php',bash:'terminal' };
@@ -122,6 +123,7 @@ export default function EditorPage() {
   const { user }   = useAuth();
   const { socket, connected, joinRoom, leaveRoom } = useSocket();
   const navigate   = useNavigate();
+  const isMobile = useMobile();
 
   // Remember last active editor for cross-page navigation
   useEffect(() => {
@@ -472,11 +474,11 @@ export default function EditorPage() {
   return (
     <div style={{ display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden',background:'var(--cc-bg, #050505)' }}>
 
-      {/* ══════════════════════ TOP BAR ══════════════════════ */}
+      {/* ══════════════════════ HEADER ══════════════════════ */}
       <header style={{
-        height:48,flexShrink:0,zIndex:50,
+        height:isMobile ? 48 : 52,flexShrink:0,zIndex:50,
         display:'flex',alignItems:'center',
-        padding:'0 12px 0 16px',gap:0,
+        padding:isMobile ? '0 8px' : '0 16px',gap:0,
         background:'var(--cc-topnav, rgba(5,5,12,.98))',
         borderBottom:'1px solid rgba(255,255,255,.05)',
         backdropFilter:'blur(10px)',
@@ -494,27 +496,33 @@ export default function EditorPage() {
           >
             CollabCode
           </button>
-          <span style={{ width:1,height:14,background:'rgba(255,255,255,.1)' }} />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize:13,fontWeight:600,color:'#F3F4F6',lineHeight:1.2 }}>{room?.title||'Untitled'}</span>
-            {room?.githubRepo && (
-              <span style={{ fontSize:11,fontWeight:500,color:'#9CA3AF',lineHeight:1.2,display:'flex',alignItems:'center',gap:4 }}>
-                <span className="material-symbols-outlined" style={{ fontSize:12 }}>source</span>
-                {room.githubRepo}
-              </span>
-            )}
-          </div>
+          {!isMobile && (
+            <>
+              <span style={{ width:1,height:14,background:'rgba(255,255,255,.1)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize:13,fontWeight:600,color:'#F3F4F6',lineHeight:1.2 }}>{room?.title||'Untitled'}</span>
+                {room?.githubRepo && (
+                  <span style={{ fontSize:11,fontWeight:500,color:'#9CA3AF',lineHeight:1.2,display:'flex',alignItems:'center',gap:4 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize:12 }}>source</span>
+                    {room.githubRepo}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Language pill */}
-          <div style={{
-            display:'flex',alignItems:'center',gap:5,
-            padding:'4px 10px',borderRadius:7,cursor:'pointer',
-            background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.2)',
-            color:'#F3F4F6',fontSize:11,fontWeight:600,
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize:13 }}>{icon}</span>
-            {room?.language||'javascript'}
-          </div>
+          {!isMobile && (
+            <div style={{
+              display:'flex',alignItems:'center',gap:5,
+              padding:'4px 10px',borderRadius:7,cursor:'pointer',
+              background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.2)',
+              color:'#F3F4F6',fontSize:11,fontWeight:600,
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize:13 }}>{icon}</span>
+              {room?.language||'javascript'}
+            </div>
+          )}
         </div>
 
         {/* Center: Run button */}
@@ -541,51 +549,52 @@ export default function EditorPage() {
               {running ? (
                 <><span className="material-symbols-outlined anim-spin" style={{ fontSize:15 }}>sync</span> Running…</>
               ) : (
-                <><span className="material-symbols-outlined" style={{ fontSize:16 }}>play_arrow</span> Run &nbsp;<span style={{ opacity:.55,fontWeight:500,fontSize:11 }}>{RUN_HINT}</span></>
+                <><span className="material-symbols-outlined" style={{ fontSize:16 }}>play_arrow</span> Run {isMobile ? '' : <>&nbsp;<span style={{ opacity:.55,fontWeight:500,fontSize:11 }}>{RUN_HINT}</span></>}</>
               )}
             </button>
           )}
-
         </div>
 
         {/* Right section */}
         <div style={{ display:'flex',alignItems:'center',gap:6,flexShrink:0 }}>
           {/* Presence avatars */}
-          <div style={{ display:'flex',alignItems:'center' }}>
-            {users.slice(0,5).map((u,i) => (
-              <div
-                key={u.userId}
-                title={u.username}
-                style={{
-                  width:30,height:30,borderRadius:'50%',
-                  border:'2px solid #050505',
-                  background: u.avatarColor||PCLR[i%PCLR.length],
-                  display:'flex',alignItems:'center',justifyContent:'center',
-                  fontSize:10,fontWeight:700,color:'#fff',
-                  marginLeft:i>0?-8:0,zIndex:10-i,position:'relative',
-                  outline:`2px solid ${u.avatarColor||PCLR[i%PCLR.length]}40`,outlineOffset:1,
-                  cursor:'default',transition:'transform .15s',
-                }}
-                onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.15) translateY(-2px)';e.currentTarget.style.zIndex=30;}}
-                onMouseLeave={e=>{e.currentTarget.style.transform='';e.currentTarget.style.zIndex=10-i;}}
-              >
-                {u.username?.charAt(0).toUpperCase()}
-              </div>
-            ))}
-            {users.length>5 && (
-              <div style={{ width:30,height:30,borderRadius:'50%',border:'2px solid #050505',marginLeft:-8,background:'rgba(255,255,255,.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#6B7280' }}>
-                +{users.length-5}
-              </div>
-            )}
-          </div>
+          {!isMobile && (
+            <div style={{ display:'flex',alignItems:'center' }}>
+              {users.slice(0,5).map((u,i) => (
+                <div
+                  key={u.userId}
+                  title={u.username}
+                  style={{
+                    width:30,height:30,borderRadius:'50%',
+                    border:'2px solid #050505',
+                    background: u.avatarColor||PCLR[i%PCLR.length],
+                    display:'flex',alignItems:'center',justifyContent:'center',
+                    fontSize:10,fontWeight:700,color:'#fff',
+                    marginLeft:i>0?-8:0,zIndex:10-i,position:'relative',
+                    outline:`2px solid ${u.avatarColor||PCLR[i%PCLR.length]}40`,outlineOffset:1,
+                    cursor:'default',transition:'transform .15s',
+                  }}
+                  onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.15) translateY(-2px)';e.currentTarget.style.zIndex=30;}}
+                  onMouseLeave={e=>{e.currentTarget.style.transform='';e.currentTarget.style.zIndex=10-i;}}
+                >
+                  {u.username?.charAt(0).toUpperCase()}
+                </div>
+              ))}
+              {users.length>5 && (
+                <div style={{ width:30,height:30,borderRadius:'50%',border:'2px solid #050505',marginLeft:-8,background:'rgba(255,255,255,.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#6B7280' }}>
+                  +{users.length-5}
+                </div>
+              )}
+            </div>
+          )}
 
-          <span style={{ width:1,height:14,background:'rgba(255,255,255,.08)' }} />
+          {!isMobile && <span style={{ width:1,height:14,background:'rgba(255,255,255,.08)' }} />}
 
           {/* Share */}
           <NavBtn icon="share" title="Invite teammates" onClick={() => setShowShare(true)} />
 
           {/* Settings */}
-          {user?._id === room?.ownerId && (
+          {user?._id === room?.ownerId && !isMobile && (
             <NavBtn icon="settings" title="Room Settings" onClick={() => setShowSettings(true)} />
           )}
 
@@ -598,10 +607,7 @@ export default function EditorPage() {
           />
 
           {/* Dashboard */}
-          <NavBtn icon="dashboard" title="Dashboard" onClick={() => navigate('/dashboard')} />
-
-          {/* App Settings */}
-          <NavBtn icon="tune" title="App Settings" onClick={() => navigate('/settings')} />
+          {!isMobile && <NavBtn icon="dashboard" title="Dashboard" onClick={() => navigate('/dashboard')} />}
 
           {/* Chat toggle */}
           <NavBtn
@@ -612,37 +618,44 @@ export default function EditorPage() {
           />
 
           {/* Self avatar */}
-          <div
-            title={user?.username}
-            style={{ width:30,height:30,borderRadius:'50%',background:user?.avatarColor||'#D1D5DB',border:'2px solid #050505',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#fff',outline:`2px solid ${user?.avatarColor||'#D1D5DB'}50`,outlineOffset:1 }}
-          >
-            {user?.username?.charAt(0).toUpperCase()||'U'}
-          </div>
+          {!isMobile && (
+            <div
+              title={user?.username}
+              style={{ width:30,height:30,borderRadius:'50%',background:user?.avatarColor||'#D1D5DB',border:'2px solid #050505',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#fff',outline:`2px solid ${user?.avatarColor||'#D1D5DB'}50`,outlineOffset:1 }}
+            >
+              {user?.username?.charAt(0).toUpperCase()||'U'}
+            </div>
+          )}
         </div>
       </header>
 
       {/* ══════════════════════ BODY ══════════════════════ */}
-      <div style={{ display:'flex',flex:1,overflow:'hidden' }}>
-        <SideNav activeTab={activeTab} setActiveTab={(tab) => {
-          if (tab === activeTab) {
-            setShowExplorer(v => !v);
-          } else {
-            setActiveTab(tab);
-            setShowExplorer(true);
-          }
-        }} showChat={showChat} setShowChat={setShowChat} />
+      <div style={{ display:'flex',flex:1,overflow:'hidden', paddingBottom: isMobile ? 56 : 0 }}>
+        {!isMobile && (
+          <SideNav activeTab={activeTab} setActiveTab={(tab) => {
+            if (tab === activeTab) {
+              setShowExplorer(v => !v);
+            } else {
+              setActiveTab(tab);
+              setShowExplorer(true);
+            }
+          }} showChat={showChat} setShowChat={setShowChat} />
+        )}
 
-        <main style={{ display:'flex',flex:1,overflow:'hidden',height:'100%',minWidth:0 }}>
+        <main style={{ display:'flex',flex:1,overflow:'hidden',height:'100%',minWidth:0, position:'relative' }}>
 
           {showExplorer && (
-              <div style={{ width: explorerWidth, minWidth: 160, maxWidth: 500, flexShrink:0, position:'relative', display:'flex' }}>
+              <div style={{ width: isMobile ? '100%' : explorerWidth, minWidth: 160, maxWidth: isMobile ? '100%' : 500, flexShrink:0, position: isMobile ? 'absolute' : 'relative', display:'flex', zIndex: isMobile ? 30 : 1, height: '100%', left: 0, background: 'var(--cc-bg, #050505)' }}>
                 <aside style={{ flex:1, display:'flex', flexDirection:'column', background:'var(--cc-bg-panel, rgba(5,5,12,.98))', overflow:'hidden' }}>
                   {activeTab === 'explorer' && (
                     <FileTree
                       roomId={roomId}
                       isOwner={user?._id === room?.ownerId}
                       activePath={activePath}
-                      setActivePath={setActivePath}
+                      setActivePath={(p) => {
+                        setActivePath(p);
+                        if (isMobile) setShowExplorer(false);
+                      }}
                       openPaths={openPaths}
                       setOpenPaths={setOpenPaths}
                       refreshKey={fileTreeRefresh}
@@ -662,17 +675,19 @@ export default function EditorPage() {
                     />
                   )}
                 </aside>
-                {/* Drag handle — sits on the right edge of the wrapper, on top of everything */}
-                <div
-                  onMouseDown={e => startDrag(e, (dx) => setExplorerWidth(w => Math.max(160, Math.min(500, w + dx))))}
-                  style={{
-                    position:'absolute', top:0, bottom:0, right:-3, width:6,
-                    cursor:'col-resize', zIndex:50,
-                    background:'transparent',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background='#007ACC'}
-                  onMouseLeave={e => e.currentTarget.style.background='transparent'}
-                />
+                {/* Drag handle */}
+                {!isMobile && (
+                  <div
+                    onMouseDown={e => startDrag(e, (dx) => setExplorerWidth(w => Math.max(160, Math.min(500, w + dx))))}
+                    style={{
+                      position:'absolute', top:0, bottom:0, right:-3, width:6,
+                      cursor:'col-resize', zIndex:50,
+                      background:'transparent',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background='#007ACC'}
+                    onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                  />
+                )}
               </div>
           )}
 
@@ -689,7 +704,7 @@ export default function EditorPage() {
                 return (
                   <div
                     key={p}
-                    onClick={() => setActivePath(p)}
+                    onClick={() => { setActivePath(p); if(isMobile) setShowExplorer(false); }}
                     style={{
                       display:'flex',alignItems:'center',gap:6,padding:'0 16px',height:'100%',
                       borderRight:'1px solid rgba(255,255,255,.05)',
@@ -777,9 +792,6 @@ export default function EditorPage() {
                   </div>
                 ))}
               </div>
-
-
-
             </div>
 
             {/* WebContainer Terminal */}
@@ -795,18 +807,20 @@ export default function EditorPage() {
 
           {/* Chat panel with resize */}
           {showChat && (
-              <div style={{ width: chatWidth, flexShrink: 0, height: '100%', overflow: 'hidden', position:'relative' }}>
+              <div style={{ width: isMobile ? '100%' : chatWidth, flexShrink: 0, height: '100%', overflow: 'hidden', position: isMobile ? 'absolute' : 'relative', zIndex: isMobile ? 30 : 1, right: 0, background: 'var(--cc-bg, #050505)' }}>
                 {/* Left-edge drag handle */}
-                <div
-                  onMouseDown={e => startDrag(e, (dx) => setChatWidth(w => Math.max(220, Math.min(450, w - dx))))}
-                  style={{
-                    position:'absolute', top:0, bottom:0, left:0, width:6,
-                    cursor:'col-resize', zIndex:30,
-                    background:'transparent',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background='#007ACC'}
-                  onMouseLeave={e => e.currentTarget.style.background='transparent'}
-                />
+                {!isMobile && (
+                  <div
+                    onMouseDown={e => startDrag(e, (dx) => setChatWidth(w => Math.max(200, Math.min(600, w - dx))))}
+                    style={{
+                      position:'absolute', top:0, bottom:0, left:0, width:6,
+                      cursor:'col-resize', zIndex:30,
+                      background:'transparent',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background='#007ACC'}
+                    onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                  />
+                )}
                 <ChatPanel roomId={roomId} socket={socket} user={user} users={users} onLeaveRoom={async () => {
                   try {
                     await api.delete(`/rooms/${roomId}/leave`);

@@ -7,6 +7,7 @@ import SideNav from '../components/SideNav';
 import TopNav from '../components/TopNav';
 import Footer from '../components/Footer';
 import confetti from 'canvas-confetti';
+import { useMobile } from '../hooks/useMobile';
 
 const LANG = {
   javascript: { color: '#F59E0B', bg: 'rgba(245,158,11,.12)', label: 'JavaScript' },
@@ -44,6 +45,7 @@ const bi = e => { e.target.style.borderColor='rgba(255,255,255,.07)'; e.target.s
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate  = useNavigate();
+  const isMobile  = useMobile();
   const [rooms,   setRooms]   = useState([]);
   const [search,  setSearch]  = useState('');
   const [loading, setLoading] = useState(true);
@@ -136,11 +138,11 @@ export default function Dashboard() {
 
         {/* ── Main scroll area ── */}
         <div className="scroll" style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
-          <div style={{ maxWidth: 1100, margin:'0 auto', padding:'36px 32px 48px' }}>
+          <div style={{ maxWidth: 1100, margin:'0 auto', padding: isMobile ? '24px 16px 48px' : '36px 32px 48px' }}>
 
             {/* ── Hero ── */}
-            <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:24, marginBottom:36, flexWrap:'wrap' }}>
-              <div>
+            <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'flex-end', justifyContent:'space-between', gap:24, marginBottom:36, flexWrap:'wrap' }}>
+              <div style={{ width: isMobile ? '100%' : 'auto' }}>
                 <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'#4B5563', marginBottom:8 }}>
                   {new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}
                 </p>
@@ -156,8 +158,8 @@ export default function Dashboard() {
               </div>
 
               {/* Controls */}
-              <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-                <div style={{ position:'relative' }}>
+              <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', gap:10, alignItems: isMobile ? 'stretch' : 'center', width: isMobile ? '100%' : 'auto' }}>
+                <div style={{ position:'relative', width: isMobile ? '100%' : 'auto' }}>
                   <span
                     className="material-symbols-outlined"
                     style={{ position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',fontSize:17,color:'#374151',pointerEvents:'none' }}
@@ -168,7 +170,7 @@ export default function Dashboard() {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Search rooms…"
-                    style={{ ...INP, width:220, paddingLeft:38 }}
+                    style={{ ...INP, width: isMobile ? '100%' : 220, paddingLeft:38 }}
                     onFocus={fi} onBlur={bi}
                   />
                 </div>

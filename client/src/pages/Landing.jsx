@@ -129,10 +129,12 @@ const AVATARS = [
 ];
 
 import { useAuth } from '../context/AuthContext';
+import { useMobile } from '../hooks/useMobile';
 
 export default function Landing() {
   const navigate = useNavigate();
   const { isAuthenticated, loading } = useAuth();
+  const isMobile = useMobile();
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -144,7 +146,7 @@ export default function Landing() {
     <div style={{ background: '#050505', color: '#F9FAFB', height: '100%', overflowY: 'auto', overflowX: 'hidden', fontFamily: "'Inter', sans-serif" }}>
 
       {/* ══════ NAV ══════ */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 50, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', borderBottom: '1px solid rgba(255,255,255,.05)', backdropFilter: 'blur(16px)', background: 'rgba(5,5,5,.85)' }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 50, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 40px', borderBottom: '1px solid rgba(255,255,255,.05)', backdropFilter: 'blur(16px)', background: 'rgba(5,5,5,.85)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <BrandMark />
           <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em', background: 'linear-gradient(135deg,#FFFFFF,#9CA3AF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
@@ -176,7 +178,7 @@ export default function Landing() {
 
       {/* ══════ HERO ══════ */}
       <FadeSection>
-      <section style={{ position: 'relative', padding: '100px 40px 80px', maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 24 }}>
+      <section style={{ position: 'relative', padding: isMobile ? '60px 20px 40px' : '100px 40px 80px', maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 24 }}>
 
         {/* Ambient orbs (Grey/White variations) */}
         <div style={{ position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)', width: 700, height: 400, background: 'radial-gradient(ellipse, rgba(255,255,255,.05) 0%, transparent 65%)', pointerEvents: 'none', filter: 'blur(40px)' }} />
@@ -341,17 +343,17 @@ export default function Landing() {
 
       {/* ══════ STATS ══════ */}
       <FadeSection>
-      <section style={{ padding: '40px 40px 80px', maxWidth: 900, margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 0, flexWrap: 'wrap', borderRadius: 20, background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.08)', padding: '32px 0' }}>
+      <section style={{ padding: isMobile ? '0 20px 60px' : '0 40px 100px', maxWidth: 1000, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: isMobile ? 32 : 0, borderRadius: 20, background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.08)', padding: '32px 0' }}>
           {[
             { value: '< 50ms', label: 'Sync latency' },
             { value: '22', label: 'Languages supported' },
             { value: 'Live',   label: 'Terminal + preview' },
             { value: '∞',      label: 'Collaborators per room' },
           ].map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}>
               <Stat value={s.value} label={s.label} />
-              {i < 3 && <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,.08)' }} />}
+              {!isMobile && i < 3 && <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,.08)' }} />}
             </div>
           ))}
         </div>
@@ -360,7 +362,7 @@ export default function Landing() {
 
       {/* ══════ FEATURES ══════ */}
       <FadeSection>
-      <section style={{ padding: '0 40px 80px', maxWidth: 1100, margin: '0 auto' }}>
+      <section style={{ padding: isMobile ? '0 20px 40px' : '0 40px 80px', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: '#6B7280', marginBottom: 12 }}>Everything you need</p>
           <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 800, letterSpacing: '-0.03em', color: '#F9FAFB' }}>
@@ -385,11 +387,11 @@ export default function Landing() {
 
       {/* ══════ CTA BANNER ══════ */}
       <FadeSection>
-      <section style={{ padding: '0 40px 100px', maxWidth: 900, margin: '0 auto' }}>
+      <section style={{ padding: isMobile ? '0 20px 60px' : '0 40px 100px', maxWidth: 900, margin: '0 auto' }}>
         <div
           style={{
             borderRadius: 24,
-            padding: '56px 48px',
+            padding: isMobile ? '32px 24px' : '56px 48px',
             textAlign: 'center',
             position: 'relative',
             overflow: 'hidden',
@@ -437,7 +439,7 @@ export default function Landing() {
       </FadeSection>
 
       {/* ══════ FOOTER ══════ */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,.05)', padding: '24px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,.05)', padding: isMobile ? '24px 20px' : '24px 40px', display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'space-between', flexDirection: isMobile ? 'column' : 'row', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <BrandMark size={24} />
           <span style={{ fontSize: 14, fontWeight: 700, background: 'linear-gradient(135deg,#FFFFFF,#9CA3AF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>CollabCode</span>

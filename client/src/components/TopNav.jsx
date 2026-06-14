@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useMobile } from '../hooks/useMobile';
 import NotificationDropdown from './NotificationDropdown';
 import HelpModal from './HelpModal';
 import BrandMark from './BrandMark';
@@ -30,6 +31,7 @@ export default function TopNav({ subtitle, rightContent, showNav = true }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [showHelp, setShowHelp] = useState(false);
+  const isMobile = useMobile();
 
   return (
     <>
@@ -40,32 +42,35 @@ export default function TopNav({ subtitle, rightContent, showNav = true }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 12px 0 16px',
+          padding: isMobile ? '0 8px' : '0 12px 0 16px',
           background: 'var(--cc-topnav, rgba(5,5,12,.98))',
           borderBottom: '1px solid var(--cc-border, rgba(255,255,255,.05))',
           flexShrink: 0,
           zIndex: 50,
           backdropFilter: 'blur(10px)',
-          gap: 8,
+          gap: isMobile ? 4 : 8,
+          overflow: 'hidden'
         }}
       >
         {/* ── Left ── */}
-        <div style={{ display: 'flex', alignItems: 'center', height: '100%', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', height: '100%', gap: isMobile ? 2 : 6, overflow: 'hidden' }}>
           <BrandMark size={24} />
           {/* Wordmark */}
-          <button
-            onClick={() => navigate('/dashboard')}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: '0 12px 0 0',
-              fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em',
-              background: 'linear-gradient(135deg,#F3F4F6 0%,#818CF8 100%)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-            }}
-          >
-            CollabCode
-          </button>
+          {!isMobile && (
+            <button
+              onClick={() => navigate('/dashboard')}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: '0 12px 0 0',
+                fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em',
+                background: 'linear-gradient(135deg,#F3F4F6 0%,#818CF8 100%)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+              }}
+            >
+              CollabCode
+            </button>
+          )}
 
-          {subtitle && (
+          {subtitle && !isMobile && (
             <>
               <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,.1)', margin: '0 12px' }} />
               <span style={{ fontSize: 13, fontWeight: 600, color: '#9CA3AF' }}>{subtitle}</span>
@@ -82,8 +87,8 @@ export default function TopNav({ subtitle, rightContent, showNav = true }) {
                 key={tab}
                 onClick={() => navigate(path)}
                 style={{
-                  height: '100%', padding: '0 14px',
-                  fontSize: 13, fontWeight: 500, color: isActive ? '#F1F5F9' : '#4B5563',
+                  height: '100%', padding: isMobile ? '0 8px' : '0 14px',
+                  fontSize: isMobile ? 12 : 13, fontWeight: 500, color: isActive ? '#F1F5F9' : '#4B5563',
                   background: 'none', border: 'none', cursor: 'pointer',
                   borderBottom: isActive ? '2px solid #D1D5DB' : '2px solid transparent',
                   transition: 'color .15s, border-color .15s',
@@ -97,7 +102,7 @@ export default function TopNav({ subtitle, rightContent, showNav = true }) {
           })}
 
           {/* Back to Editor — only shows on profile/settings pages when a room session exists */}
-          {showNav && (location.pathname.startsWith('/profile') || location.pathname.startsWith('/settings')) && (() => {
+          {showNav && !isMobile && (location.pathname.startsWith('/profile') || location.pathname.startsWith('/settings')) && (() => {
             try {
               const saved = JSON.parse(localStorage.getItem('cc_lastRoom'));
               if (saved?.roomId) return (
