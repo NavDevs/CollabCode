@@ -156,8 +156,8 @@ export default function EditorPage() {
   const [openPaths,   setOpenPaths]   = useState([]);
 
   // Panel visibility & sizing
-  const [showExplorer, setShowExplorer] = useState(true);
-  const [showChat, setShowChat] = useState(true);
+  const [showExplorer, setShowExplorer] = useState(window.innerWidth > 768);
+  const [showChat, setShowChat] = useState(window.innerWidth > 768);
   const [explorerWidth, setExplorerWidth] = useState(240);
   const [chatWidth, setChatWidth] = useState(280);
 
@@ -472,7 +472,7 @@ export default function EditorPage() {
   const isReadOnly = room?.isReadOnly && user?._id !== room?.ownerId;
 
   return (
-    <div style={{ display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden',background:'var(--cc-bg, #050505)' }}>
+    <div style={{ display:'flex',flexDirection:'column',height:'100%',overflow:'hidden',background:'var(--cc-bg, #050505)' }}>
 
       {/* ══════════════════════ HEADER ══════════════════════ */}
       <header style={{
@@ -485,17 +485,21 @@ export default function EditorPage() {
         overflow:'hidden',
       }}>
         {/* Left section */}
-        <div style={{ display:'flex',alignItems:'center',gap:10,height:'100%',flexShrink:1,minWidth:0,overflow:'hidden' }}>
+        <div style={{ display:'flex',alignItems:'center',gap:isMobile ? 4 : 10,height:'100%',flexShrink:1,minWidth:0,overflow:'hidden' }}>
           <button
             onClick={() => navigate('/dashboard')}
             style={{
               background:'linear-gradient(135deg,#F3F4F6 0%,#818CF8 100%)',
               WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text',
-              fontSize:17,fontWeight:800,letterSpacing:'-0.02em',border:'none',cursor:'pointer',padding:0,
+              fontSize:isMobile ? 15 : 17,fontWeight:800,letterSpacing:'-0.02em',border:'none',cursor:'pointer',padding:0,
+              display: isMobile ? 'none' : 'block' // hide wordmark on mobile completely to save space for run button
             }}
           >
             CollabCode
           </button>
+          {isMobile && (
+            <span style={{ fontSize:13,fontWeight:600,color:'#F3F4F6',lineHeight:1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{room?.title||'Untitled'}</span>
+          )}
           {!isMobile && (
             <>
               <span style={{ width:1,height:14,background:'rgba(255,255,255,.1)' }} />
@@ -591,7 +595,7 @@ export default function EditorPage() {
           {!isMobile && <span style={{ width:1,height:14,background:'rgba(255,255,255,.08)' }} />}
 
           {/* Share */}
-          <NavBtn icon="share" title="Invite teammates" onClick={() => setShowShare(true)} />
+          {!isMobile && <NavBtn icon="share" title="Invite teammates" onClick={() => setShowShare(true)} />}
 
           {/* Settings */}
           {user?._id === room?.ownerId && !isMobile && (
