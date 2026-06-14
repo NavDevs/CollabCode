@@ -25,27 +25,35 @@ export default function ChatPanel({ room, roomId, socket, user, users = [], onLe
   const [activeTab, setActiveTab] = useState('chat');
   const [typingUsers, setTypingUsers] = useState([]);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
+  const [mentionState, setMentionState] = useState(null);
+  const [files, setFiles] = useState([]);
   const bottom = useRef(null);
   const typingTimer = useRef(null);
 
-  // Load chat history on mount
+  // Load chat history
+  const loadMessages = async () => {
+    try {
+      const { data } = await api.get(`/rooms/${roomId}/messages`);
+      setMsgs(data.messages.map(m => ({
+        id: m._id,
+        userId: m.userId,
+        username: m.username,
+        avatarColor: m.avatarColor,
+        message: m.message,
+        imageUrl: m.imageUrl,
+        timestamp: new Date(m.timestamp).getTime(),
+        type: m.type || 'message',
+      })));
+      setTimeout(() => bottom.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!roomId) return;
-    api.get(`/rooms/${roomId}/messages`)
-      .then(({ data }) => {
-        setMsgs(data.messages.map(m => ({
-          id: m._id,
-          userId: m.userId,
-          username: m.username,
-          avatarColor: m.avatarColor,
-          message: m.message,
-          imageUrl: m.imageUrl,
-          timestamp: new Date(m.timestamp).getTime(),
-          type: m.type || 'message',
-        })));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    if (roomId) loadMessages();
   }, [roomId]);
 
   useEffect(() => {
@@ -428,19 +436,42 @@ export default function ChatPanel({ room, roomId, socket, user, users = [], onLe
                 </button>
               </div>
             )}
+
+            {/* Autocomplete Popup */}
+            {mentionState && mentionOptions.length > 0 && (
+              <div style={{
+                position: 'absolute', bottom: '100%', left: 12, right: 12, marginBottom: 8,
+                background: '#1F2937', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
+                maxHeight: 160, overflowY: 'auto', zIndex: 10, boxShadow: '0 -4px 12px rgba(0,0,0,0.5)'
+              }} className="scroll">
+                {mentionOptions.map((opt, i) => (
+                  <div
+                    key={i}
+                    onClick={() => insertMention(opt)}
+                    style={{
+                      padding: '8px 12px', fontSize: 13, color: '#E5E7EB', cursor: 'pointer',
+                      borderBottom: i < mentionOptions.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                      transition: 'background 0.1s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span style={{ color: mentionState.type === '@' ? '#A78BFA' : '#34D399', marginRight: 6, fontWeight: 600 }}>{mentionState.type}</span>
+                    {opt}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 8, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '4px 8px', transition: 'border-color .2s, box-shadow .2s' }}>
               <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, color: '#9CA3AF', transition: 'background .15s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
                 <span className="material-symbols-outlined" style={{ fontSize: 20 }}>image</span>
               </label>
               <textarea
+                id="chat-textarea"
                 value={input}
-                onChange={e => {
-                  setInput(e.target.value);
-                  handleTyping();
-                  e.target.style.height = 'auto';
-                  e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
-                }}
+                onChange={handleInputChange}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
