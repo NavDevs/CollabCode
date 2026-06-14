@@ -8,6 +8,7 @@ import TopNav from '../components/TopNav';
 import Footer from '../components/Footer';
 import confetti from 'canvas-confetti';
 import { useMobile } from '../hooks/useMobile';
+import { useWindowHeight } from '../hooks/useWindowHeight';
 
 const LANG = {
   javascript: { color: '#F59E0B', bg: 'rgba(245,158,11,.12)', label: 'JavaScript' },
@@ -46,6 +47,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate  = useNavigate();
   const isMobile  = useMobile();
+  const windowHeight = useWindowHeight();
   const [rooms,   setRooms]   = useState([]);
   const [search,  setSearch]  = useState('');
   const [loading, setLoading] = useState(true);
@@ -130,7 +132,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', background:'var(--cc-bg, #050505)' }}>
+    <div style={{ display:'flex', flexDirection:'column', height: windowHeight ? `${windowHeight}px` : '100vh', overflow:'hidden', background:'var(--cc-bg, #050505)' }}>
       <TopNav showNav />
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>

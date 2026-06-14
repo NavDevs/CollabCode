@@ -14,6 +14,7 @@ import FileTree from '../components/FileTree';
 import RoomSettingsModal from '../components/RoomSettingsModal';
 import WebTerminal from '../components/WebTerminal';
 import { useMobile } from '../hooks/useMobile';
+import { useWindowHeight } from '../hooks/useWindowHeight';
 
 const EXT   = { python:'py',typescript:'ts',javascript:'js',html:'html',css:'css',go:'go',rust:'rs',java:'java',cpp:'cpp',ruby:'rb',c:'c',php:'php',bash:'sh' };
 const ICON  = { javascript:'javascript',typescript:'javascript',python:'database',go:'bolt',html:'html',css:'css',rust:'memory',java:'terminal',cpp:'terminal',c:'terminal',ruby:'diamond',php:'php',bash:'terminal' };
@@ -124,6 +125,7 @@ export default function EditorPage() {
   const { socket, connected, joinRoom, leaveRoom } = useSocket();
   const navigate   = useNavigate();
   const isMobile = useMobile();
+  const windowHeight = useWindowHeight();
 
   // Remember last active editor for cross-page navigation
   useEffect(() => {
@@ -472,7 +474,7 @@ export default function EditorPage() {
   const isReadOnly = room?.isReadOnly && user?._id !== room?.ownerId;
 
   return (
-    <div style={{ display:'flex',flexDirection:'column',height:'100%',overflow:'hidden',background:'var(--cc-bg, #050505)' }}>
+    <div style={{ display:'flex',flexDirection:'column',height: windowHeight ? `${windowHeight}px` : '100vh',overflow:'hidden',background:'var(--cc-bg, #050505)' }}>
 
       {/* ══════════════════════ HEADER ══════════════════════ */}
       <header style={{
