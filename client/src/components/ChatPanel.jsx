@@ -17,9 +17,10 @@ const fmtDate = ts => {
   return d.toLocaleDateString([], { month:'short', day:'numeric' });
 };
 
-export default function ChatPanel({ room, roomId, socket, user, users = [], onLeaveRoom }) {
+export default function ChatPanel({ room, roomId, socket, user, users = [], onLeaveRoom, onNavigateToFile }) {
   const [msgs,  setMsgs]  = useState([]);
   const [input, setInput] = useState('');
+  const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('chat');
   const [typingUsers, setTypingUsers] = useState([]);
@@ -38,6 +39,7 @@ export default function ChatPanel({ room, roomId, socket, user, users = [], onLe
           username: m.username,
           avatarColor: m.avatarColor,
           message: m.message,
+          imageUrl: m.imageUrl,
           timestamp: new Date(m.timestamp).getTime(),
           type: m.type || 'message',
         })));
@@ -95,10 +97,56 @@ export default function ChatPanel({ room, roomId, socket, user, users = [], onLe
     socket.emit('user-typing', { roomId, username: user.username });
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Simple resize to avoid massive base64 strings
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        setImage(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    // Reset input
+    e.target.value = '';
+  };
+
   const send = () => {
-    if (!input.trim() || !socket) return;
-    socket.emit('chat-message', { roomId, message: input.trim() });
+    if ((!input.trim() && !image) || !socket) return;
+    socket.emit('chat-message', { roomId, message: input.trim(), imageUrl: image });
     setInput('');
+    setImage(null);
     setTypingUsers(p => p.filter(u => u !== user?.username));
   };
 
@@ -310,7 +358,37 @@ export default function ChatPanel({ room, roomId, socket, user, users = [], onLe
                           <div style={{
                             fontSize: 13, lineHeight: 1.5, color: '#D1D5DB', wordBreak: 'break-word',
                           }}>
-                            {msg.message}
+                            {msg.imageUrl && (
+                              <div style={{ marginBottom: msg.message ? 8 : 0 }}>
+                                <img src={msg.imageUrl} alt="attached" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }} />
+                              </div>
+                            )}
+                            {msg.message && (
+                              <div>
+                                {(() => {
+                                  // Parse @username and #filename:line
+                                  const tokenRegex = /(@[\w.-]+|#[\w.-]+:\d+)/g;
+                                  const parts = msg.message.split(tokenRegex);
+                                  return parts.map((part, idx) => {
+                                    if (part.startsWith('@')) {
+                                      return <span key={idx} style={{ color: '#A78BFA', fontWeight: 600, background: 'rgba(167,139,250,.1)', padding: '0 4px', borderRadius: 4 }}>{part}</span>;
+                                    } else if (part.startsWith('#')) {
+                                      const [file, line] = part.substring(1).split(':');
+                                      return (
+                                        <span
+                                          key={idx}
+                                          onClick={() => onNavigateToFile?.(file, parseInt(line, 10))}
+                                          style={{ color: '#34D399', fontWeight: 600, background: 'rgba(52,211,153,.1)', padding: '0 4px', borderRadius: 4, cursor: onNavigateToFile ? 'pointer' : 'default', textDecoration: onNavigateToFile ? 'underline' : 'none' }}
+                                        >
+                                          {part}
+                                        </span>
+                                      );
+                                    }
+                                    return <span key={idx}>{part}</span>;
+                                  });
+                                })()}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -339,31 +417,60 @@ export default function ChatPanel({ room, roomId, socket, user, users = [], onLe
 
           {/* Input */}
           <div style={{ padding: '10px 12px', borderTop: '1px solid #3C3C3C', flexShrink: 0 }}>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="text"
+            {image && (
+              <div style={{ position: 'relative', display: 'inline-block', marginBottom: 8 }}>
+                <img src={image} alt="Upload preview" style={{ height: 60, borderRadius: 8, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
+                <button
+                  onClick={() => setImage(null)}
+                  style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#EF4444', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>close</span>
+                </button>
+              </div>
+            )}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 8, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '4px 8px', transition: 'border-color .2s, box-shadow .2s' }}>
+              <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, color: '#9CA3AF', transition: 'background .15s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>image</span>
+              </label>
+              <textarea
                 value={input}
-                onChange={e => { setInput(e.target.value); handleTyping(); }}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-                placeholder="Type a message…"
-                style={{
-                  width: '100%', padding: '10px 42px 10px 14px', borderRadius: 10,
-                  background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)',
-                  fontSize: 13, color: '#E5E7EB', fontFamily: "'Inter', sans-serif", outline: 'none',
-                  transition: 'border-color .2s, box-shadow .2s',
+                onChange={e => {
+                  setInput(e.target.value);
+                  handleTyping();
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
                 }}
-                onFocus={e => { e.target.style.borderColor = '#8B5CF6'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,.15)'; }}
-                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,.1)'; e.target.style.boxShadow = 'none'; }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    send();
+                    e.target.style.height = 'auto';
+                  }
+                }}
+                placeholder="Type a message…"
+                rows={1}
+                style={{
+                  flex: 1, padding: '6px 0', minHeight: 32, maxHeight: 120,
+                  background: 'transparent', border: 'none', resize: 'none',
+                  fontSize: 13, color: '#E5E7EB', fontFamily: "'Inter', sans-serif", outline: 'none',
+                  lineHeight: '20px'
+                }}
+                onFocus={e => { e.target.parentElement.style.borderColor = '#8B5CF6'; e.target.parentElement.style.boxShadow = '0 0 0 3px rgba(139,92,246,.15)'; }}
+                onBlur={e => { e.target.parentElement.style.borderColor = 'rgba(255,255,255,.1)'; e.target.parentElement.style.boxShadow = 'none'; }}
               />
               <button
-                onClick={send}
-                disabled={!input.trim()}
+                onClick={() => {
+                  send();
+                  const ta = document.querySelector('textarea');
+                  if (ta) ta.style.height = 'auto';
+                }}
+                disabled={!input.trim() && !image}
                 style={{
-                  position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-                  width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: input.trim() ? 'linear-gradient(135deg, #8B5CF6, #6366F1)' : 'transparent',
-                  border: 'none', cursor: input.trim() ? 'pointer' : 'default',
-                  color: input.trim() ? '#fff' : '#4B5563', transition: 'all .15s', lineHeight: 0,
+                  width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: (input.trim() || image) ? 'linear-gradient(135deg, #8B5CF6, #6366F1)' : 'transparent',
+                  border: 'none', cursor: (input.trim() || image) ? 'pointer' : 'default',
+                  color: (input.trim() || image) ? '#fff' : '#4B5563', transition: 'all .15s', flexShrink: 0
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>send</span>

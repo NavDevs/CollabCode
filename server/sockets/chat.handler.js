@@ -2,10 +2,10 @@ const { nanoid } = require('nanoid');
 const Message = require('../models/Message');
 
 const registerChatHandler = (io, socket) => {
-  socket.on('chat-message', async ({ roomId, message }) => {
+  socket.on('chat-message', async ({ roomId, message, imageUrl }) => {
     try {
-      // Validate non-empty message
-      if (!message || !message.trim()) {
+      // Validate non-empty message or image
+      if ((!message || !message.trim()) && !imageUrl) {
         return;
       }
 
@@ -14,7 +14,8 @@ const registerChatHandler = (io, socket) => {
         userId: socket.user._id.toString(),
         username: socket.user.username,
         avatarColor: socket.user.avatarColor,
-        message: message.trim(),
+        message: message ? message.trim() : '',
+        imageUrl: imageUrl || null,
         timestamp: Date.now(),
       };
 
@@ -24,7 +25,8 @@ const registerChatHandler = (io, socket) => {
         userId: socket.user._id,
         username: socket.user.username,
         avatarColor: socket.user.avatarColor,
-        message: message.trim(),
+        message: chatMessage.message,
+        imageUrl: chatMessage.imageUrl,
         timestamp: chatMessage.timestamp,
       });
 

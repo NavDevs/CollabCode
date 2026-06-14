@@ -23,6 +23,10 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  imageUrl: {
+    type: String,
+    required: false,
+  },
   // 'message' = regular chat, 'system' = join/leave/disconnect, 'permission_*' = access control
   type: {
     type: String,

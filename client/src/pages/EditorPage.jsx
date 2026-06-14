@@ -926,7 +926,21 @@ export default function EditorPage() {
                     onMouseLeave={e => e.currentTarget.style.background='transparent'}
                   />
                 )}
-                <ChatPanel room={room} roomId={roomId} socket={socket} user={user} users={users} onLeaveRoom={async () => {
+                <ChatPanel room={room} roomId={roomId} socket={socket} user={user} users={users} onNavigateToFile={(path, line) => {
+                  setActivePath(path);
+                  setOpenPaths(prev => {
+                    if (!prev.includes(path)) return [...prev, path];
+                    return prev;
+                  });
+                  setTimeout(() => {
+                    const editor = editorRef.current?.getEditor?.();
+                    if (editor && line) {
+                      editor.revealLineInCenter(line);
+                      editor.setPosition({ lineNumber: line, column: 1 });
+                      editor.focus();
+                    }
+                  }, 150);
+                }} onLeaveRoom={async () => {
                   try {
                     await api.delete(`/rooms/${roomId}/leave`);
                     if (socket && connected) leaveRoom(roomId);
