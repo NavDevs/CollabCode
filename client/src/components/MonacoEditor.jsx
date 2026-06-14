@@ -133,9 +133,15 @@ const Editor = forwardRef(function Editor({ path, value, language, onChange, onC
   const installedExtensions = useInstalledExtensions();
   const extCleanupRef = useRef(null);
 
-  // Expose getValue() to parent via ref
+  const onCursorChangeRef = useRef(onCursorChange);
+  useEffect(() => {
+    onCursorChangeRef.current = onCursorChange;
+  }, [onCursorChange]);
+
+  // Expose getValue() and getEditor() to parent via ref
   useImperativeHandle(ref, () => ({
     getValue: () => editorRef.current?.getValue() ?? '',
+    getEditor: () => editorRef.current,
   }));
 
   const handleMount = (editor, monaco) => {
@@ -143,8 +149,8 @@ const Editor = forwardRef(function Editor({ path, value, language, onChange, onC
     monacoRef.current = monaco;
 
     editor.onDidChangeCursorPosition((e) => {
-      if (onCursorChange) {
-        onCursorChange({ lineNumber: e.position.lineNumber, column: e.position.column });
+      if (onCursorChangeRef.current) {
+        onCursorChangeRef.current({ lineNumber: e.position.lineNumber, column: e.position.column });
       }
     });
 
