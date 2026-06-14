@@ -246,7 +246,7 @@ export default function EditorPage() {
     const ytext = ydoc.getText('monaco');
     let cancelled = false;
     let gotContent = false; // track if we received content
-    const awarenessRef = useRef(null);
+    let awareness = null;
 
     const attachBinding = () => {
       if (cancelled) return;
@@ -256,20 +256,20 @@ export default function EditorPage() {
         
         if (isReadOnlyRef.current) editor.updateOptions({ readOnly: false });
         
-        if (!awarenessRef.current) {
-          awarenessRef.current = new Awareness(ydoc);
-          awarenessRef.current.setLocalStateField('user', {
+        if (!awareness) {
+          awareness = new Awareness(ydoc);
+          awareness.setLocalStateField('user', {
             name: user?.username || 'Guest',
             color: user?.avatarColor || '#3B82F6'
           });
-          awarenessRef.current.on('update', ({ added, updated, removed }) => {
+          awareness.on('update', ({ added, updated, removed }) => {
             const changedClients = added.concat(updated).concat(removed);
-            const update = awarenessProtocol.encodeAwarenessUpdate(awarenessRef.current, changedClients);
+            const update = awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients);
             socket.emit('yjs-awareness-update', { roomId, path: activePathRef.current, update: Array.from(update) });
           });
         }
         
-        bindingRef.current = new MonacoBinding(ytext, editor.getModel(), new Set([editor]), awarenessRef.current);
+        bindingRef.current = new MonacoBinding(ytext, editor.getModel(), new Set([editor]), awareness);
         if (isReadOnlyRef.current) editor.updateOptions({ readOnly: true });
         
         ydoc.on('update', (update, origin) => {
@@ -364,8 +364,8 @@ export default function EditorPage() {
     };
 
     const handleAwarenessUpdate = ({ roomId: r, path: p, update }) => {
-      if (r !== roomId || p !== activePathRef.current || !awarenessRef.current) return;
-      awarenessProtocol.applyAwarenessUpdate(awarenessRef.current, new Uint8Array(update), 'remote');
+      if (r !== roomId || p !== activePathRef.current || !awareness) return;
+      awarenessProtocol.applyAwarenessUpdate(awareness, new Uint8Array(update), 'remote');
     };
 
     const fallbackTimer = setTimeout(() => {
@@ -384,7 +384,7 @@ export default function EditorPage() {
       clearTimeout(fallbackTimer);
       clearTimeout(window.__saveTimer);
       if (bindingRef.current) bindingRef.current.destroy();
-      if (awarenessRef.current) awarenessRef.current.destroy();
+      if (awareness) awareness.destroy();
       ydoc.destroy();
       socket.off('yjs-sync-init', handleSyncInit);
       socket.off('yjs-update', handleUpdate);
