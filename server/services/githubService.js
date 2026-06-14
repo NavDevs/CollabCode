@@ -296,7 +296,7 @@ const importRepoToWorkspace = async (roomId, repoFullName, branch, accessToken) 
     return true;
   });
 
-  const toProcess = validFiles.slice(0, 100);
+  const toProcess = validFiles;
 
   // cleanup in-memory yjs docs
   await yjsService.cleanupRoomDocs(roomId);
@@ -308,27 +308,32 @@ const importRepoToWorkspace = async (roomId, repoFullName, branch, accessToken) 
     return map[ext] || 'plaintext';
   };
 
-  await Promise.all(toProcess.map(async (f) => {
-    try {
-      const blobRes = await fetch(f.url, {
-        headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json', 'User-Agent': 'CollabCode' }
-      });
-      if (!blobRes.ok) return;
-      const blobData = await blobRes.json();
-      const content = Buffer.from(blobData.content, 'base64').toString('utf8');
-      
-      const normalizedPath = f.path.startsWith('/') ? f.path : '/' + f.path;
-      await WorkspaceFile.create({
-        roomId,
-        path: normalizedPath,
-        name: f.path.split('/').pop(),
-        language: getLanguageFromExt(f.path),
-        content,
-      });
-    } catch (err) {
-      console.error(`Failed to import file ${f.path}`, err);
-    }
-  }));
+  // Process in chunks of 20 to avoid GitHub rate limits and memory issues
+  const chunkSize = 20;
+  for (let i = 0; i < toProcess.length; i += chunkSize) {
+    const chunk = toProcess.slice(i, i + chunkSize);
+    await Promise.all(chunk.map(async (f) => {
+      try {
+        const blobRes = await fetch(f.url, {
+          headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json', 'User-Agent': 'CollabCode' }
+        });
+        if (!blobRes.ok) return;
+        const blobData = await blobRes.json();
+        const content = Buffer.from(blobData.content, 'base64').toString('utf8');
+        
+        const normalizedPath = f.path.startsWith('/') ? f.path : '/' + f.path;
+        await WorkspaceFile.create({
+          roomId,
+          path: normalizedPath,
+          name: f.path.split('/').pop(),
+          language: getLanguageFromExt(f.path),
+          content,
+        });
+      } catch (err) {
+        console.error(`Failed to import file ${f.path}`, err);
+      }
+    }));
+  }
   return { imported: toProcess.length };
 };
 
