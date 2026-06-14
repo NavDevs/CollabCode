@@ -874,7 +874,7 @@ export default function EditorPage() {
                     onMouseLeave={e => e.currentTarget.style.background='transparent'}
                   />
                 )}
-                <ChatPanel roomId={roomId} socket={socket} user={user} users={users} onLeaveRoom={async () => {
+                <ChatPanel room={room} roomId={roomId} socket={socket} user={user} users={users} onLeaveRoom={async () => {
                   try {
                     await api.delete(`/rooms/${roomId}/leave`);
                     if (socket && connected) leaveRoom(roomId);

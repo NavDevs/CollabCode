@@ -44,17 +44,32 @@ const registerChatHandler = (io, socket) => {
 
   // Write Access Requests
   socket.on('request-write-access', async ({ roomId }) => {
-    const chatMessage = {
-      id: nanoid(12),
-      type: 'permission_request',
-      userId: socket.user._id.toString(),
-      username: socket.user.username,
-      avatarColor: socket.user.avatarColor,
-      message: `${socket.user.username} is requesting write access.`,
-      timestamp: Date.now(),
-      status: 'pending',
-    };
-    io.to(roomId).emit('chat-system', chatMessage);
+    try {
+      const chatMessage = {
+        id: nanoid(12),
+        type: 'permission_request',
+        userId: socket.user._id.toString(),
+        username: socket.user.username,
+        avatarColor: socket.user.avatarColor,
+        message: `${socket.user.username} is requesting write access.`,
+        timestamp: Date.now(),
+        status: 'pending',
+      };
+      
+      await Message.create({
+        roomId,
+        userId: socket.user._id,
+        username: socket.user.username,
+        avatarColor: socket.user.avatarColor,
+        message: chatMessage.message,
+        type: 'permission_request',
+        timestamp: chatMessage.timestamp,
+      });
+
+      io.to(roomId).emit('chat-system', chatMessage);
+    } catch (err) {
+      console.error('request-write-access error:', err);
+    }
   });
 
   socket.on('grant-write-access', async ({ roomId, targetUserId, targetUsername }) => {
@@ -74,8 +89,7 @@ const registerChatHandler = (io, socket) => {
       // Broadcast write access change
       io.to(roomId).emit('write-access-changed', { writeAccessUserId: targetUserId });
 
-      // Send system message
-      io.to(roomId).emit('chat-system', {
+      const grantedMsg = {
         id: nanoid(12),
         type: 'permission_granted',
         userId: socket.user._id.toString(),
@@ -83,22 +97,51 @@ const registerChatHandler = (io, socket) => {
         avatarColor: socket.user.avatarColor,
         message: `${targetUsername} was granted write access.`,
         timestamp: Date.now(),
+      };
+
+      await Message.create({
+        roomId,
+        userId: socket.user._id,
+        username: socket.user.username,
+        avatarColor: socket.user.avatarColor,
+        message: grantedMsg.message,
+        type: 'permission_granted',
+        timestamp: grantedMsg.timestamp,
       });
+
+      // Send system message
+      io.to(roomId).emit('chat-system', grantedMsg);
     } catch (err) {
       console.error('grant-write-access error:', err);
     }
   });
 
   socket.on('reject-write-access', async ({ roomId, targetUsername }) => {
-    io.to(roomId).emit('chat-system', {
-      id: nanoid(12),
-      type: 'permission_rejected',
-      userId: socket.user._id.toString(),
-      username: socket.user.username,
-      avatarColor: socket.user.avatarColor,
-      message: `${socket.user.username} denied write access to ${targetUsername}.`,
-      timestamp: Date.now(),
-    });
+    try {
+      const rejectMsg = {
+        id: nanoid(12),
+        type: 'permission_rejected',
+        userId: socket.user._id.toString(),
+        username: socket.user.username,
+        avatarColor: socket.user.avatarColor,
+        message: `${socket.user.username} denied write access to ${targetUsername}.`,
+        timestamp: Date.now(),
+      };
+
+      await Message.create({
+        roomId,
+        userId: socket.user._id,
+        username: socket.user.username,
+        avatarColor: socket.user.avatarColor,
+        message: rejectMsg.message,
+        type: 'permission_rejected',
+        timestamp: rejectMsg.timestamp,
+      });
+
+      io.to(roomId).emit('chat-system', rejectMsg);
+    } catch (err) {
+      console.error('reject-write-access error:', err);
+    }
   });
 };
 

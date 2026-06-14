@@ -17,7 +17,7 @@ const fmtDate = ts => {
   return d.toLocaleDateString([], { month:'short', day:'numeric' });
 };
 
-export default function ChatPanel({ roomId, socket, user, users = [], onLeaveRoom }) {
+export default function ChatPanel({ room, roomId, socket, user, users = [], onLeaveRoom }) {
   const [msgs,  setMsgs]  = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
