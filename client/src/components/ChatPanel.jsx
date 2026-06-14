@@ -270,19 +270,21 @@ export default function ChatPanel({ roomId, socket, user, users = [], onLeaveRoo
               </>
             )}
 
-            {/* Typing indicator */}
+            <div ref={bottom} />
+          </div>
+
+          {/* Typing indicator (Outside scroll area) */}
+          <div style={{ height: typingUsers.filter(u => u !== user?.username).length > 0 ? 24 : 0, transition: 'height 0.2s', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
             {typingUsers.filter(u => u !== user?.username).length > 0 && (
-              <div style={{ padding: '4px 8px', fontSize: 11, color: '#8B5CF6', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 11, color: '#A78BFA', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ display: 'flex', gap: 2 }}>
-                  <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#8B5CF6', animation: 'blink 1.4s infinite both', animationDelay: '0s' }} />
-                  <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#8B5CF6', animation: 'blink 1.4s infinite both', animationDelay: '.2s' }} />
-                  <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#8B5CF6', animation: 'blink 1.4s infinite both', animationDelay: '.4s' }} />
+                  <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#A78BFA', animation: 'blink 1.4s infinite both', animationDelay: '0s' }} />
+                  <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#A78BFA', animation: 'blink 1.4s infinite both', animationDelay: '.2s' }} />
+                  <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#A78BFA', animation: 'blink 1.4s infinite both', animationDelay: '.4s' }} />
                 </span>
-                {typingUsers.filter(u => u !== user?.username).join(', ')} typing...
+                {typingUsers.filter(u => u !== user?.username).join(', ')} {typingUsers.filter(u => u !== user?.username).length > 1 ? 'are' : 'is'} typing...
               </div>
             )}
-
-            <div ref={bottom} />
           </div>
 
           {/* Input */}
