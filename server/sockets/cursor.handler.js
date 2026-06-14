@@ -1,10 +1,11 @@
 const registerCursorHandler = (io, socket) => {
-  socket.on('cursor-change', ({ roomId, cursor }) => {
+  socket.on('cursor-change', ({ roomId, path, cursor }) => {
     try {
       socket.to(roomId).emit('cursor-updated', {
         userId: socket.user._id.toString(),
         username: socket.user.username,
         avatarColor: socket.user.avatarColor,
+        path,
         cursor,
       });
     } catch (error) {

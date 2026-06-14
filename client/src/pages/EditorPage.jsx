@@ -251,7 +251,10 @@ export default function EditorPage() {
       const editor = editorRef.current?.getEditor?.();
       if (editor && editor.getModel()) {
         if (bindingRef.current) bindingRef.current.destroy();
+        
+        if (isReadOnlyRef.current) editor.updateOptions({ readOnly: false });
         bindingRef.current = new MonacoBinding(ytext, editor.getModel(), new Set([editor]), null);
+        if (isReadOnlyRef.current) editor.updateOptions({ readOnly: true });
         
         ydoc.on('update', (update, origin) => {
           // If the update was local (typing in the editor), broadcast it
@@ -432,8 +435,8 @@ export default function EditorPage() {
       setShowTerminal(showTerminal);
     });
 
-    socket.on('cursor-updated', ({ userId, username, avatarColor, cursor }) =>
-      setCursors(p => ({ ...p, [userId]: { username, avatarColor, cursor } }))
+    socket.on('cursor-updated', ({ userId, username, avatarColor, path, cursor }) =>
+      setCursors(p => ({ ...p, [userId]: { username, avatarColor, path, cursor } }))
     );
 
     /* Execution events */
@@ -502,9 +505,9 @@ export default function EditorPage() {
   /* ── Cursor broadcast ── */
   const onCursor = useCallback(p => {
     setPos({ line:p.lineNumber, col:p.column });
-    if (socket && connected)
-      socket.emit('cursor-change', { roomId, cursor:{line:p.lineNumber,col:p.column} });
-  }, [socket, connected, roomId]);
+    if (socket && connected && activePath)
+      socket.emit('cursor-change', { roomId, path: activePath, cursor:{line:p.lineNumber,col:p.column} });
+  }, [socket, connected, roomId, activePath]);
 
   /* ── Run code ── */
   const runCode = useCallback(() => {
@@ -892,7 +895,9 @@ export default function EditorPage() {
                 />
 
                 {/* Remote cursors overlay */}
-                {Object.entries(cursors).map(([uid,d]) => (
+                {Object.entries(cursors).map(([uid,d]) => {
+                  if (d.path !== activePath) return null;
+                  return (
                   <div
                     key={uid}
                     className="pointer-events-none"
@@ -903,7 +908,7 @@ export default function EditorPage() {
                       {d.username}
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
 
