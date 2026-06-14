@@ -21,6 +21,7 @@ const createRoom = async (req, res) => {
       language: language || 'javascript',
       ownerId: req.user._id,
       participants: [req.user._id],
+      writeAccessUserId: req.user._id,
     });
 
     // Create an empty document for this room
@@ -175,6 +176,34 @@ const updateRoomSettings = async (req, res) => {
   }
 };
 
+const updateWriteAccess = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { userId } = req.body;
+
+    const room = await Room.findOne({ roomId });
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found.' });
+    }
+
+    // Only the current holder of the write access can transfer it
+    if (room.writeAccessUserId && room.writeAccessUserId.toString() !== req.user._id.toString() && room.ownerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Only the current write access holder can transfer permission.' });
+    }
+
+    room.writeAccessUserId = userId;
+    await room.save();
+    
+    // Broadcast via Socket.IO would typically happen here, but we can do it via the socket server
+    // or trigger it from the client after API success.
+
+    return res.status(200).json({ message: 'Write access transferred successfully.', writeAccessUserId: userId });
+  } catch (error) {
+    console.error('Update write access error:', error.message);
+    return res.status(500).json({ error: 'Server error updating write access.' });
+  }
+};
+
 const getRoomMessages = async (req, res) => {
   try {
     const { roomId } = req.params;
@@ -221,4 +250,9 @@ const deleteRoom = async (req, res) => {
   }
 };
 
-module.exports = { createRoom, joinRoom, getRoom, getUserRooms, leaveRoom, updateRoomSettings, getRoomMessages, deleteRoom };
+module.exports = { createRoom, joinRoom, getRoom, getUserRooms,  leaveRoom,
+  updateRoomSettings,
+  updateWriteAccess,
+  getRoomMessages,
+  deleteRoom,
+};

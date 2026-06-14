@@ -373,11 +373,21 @@ export default function EditorPage() {
       setRoom(prev => prev ? { ...prev, ...updates } : prev);
     });
 
+    /* Write access baton passed */
+    socket.on('write-access-changed', ({ writeAccessUserId }) => {
+      setRoom(prev => prev ? { ...prev, writeAccessUserId } : prev);
+      if (writeAccessUserId === user?._id) {
+        toast.success("You now have write access to this room!", { icon: '🔑', id: 'write-access-granted' });
+      } else {
+        toast("Your write access was removed.", { icon: '🔒', id: 'write-access-removed' });
+      }
+    });
+
     return () => {
-      ['room-users','user-joined','user-left','cursor-updated','exec-start','exec-done','workspace-updated','room-updated']
+      ['room-users','user-joined','user-left','cursor-updated','exec-start','exec-done','workspace-updated','room-updated','write-access-changed']
         .forEach(e => socket.off(e));
     };
-  }, [socket, connected, roomId]);
+  }, [socket, connected, roomId, user]);
 
   const load = async (pwd = '') => {
     try {
@@ -471,7 +481,9 @@ export default function EditorPage() {
     </div>
   );
 
-  const isReadOnly = room?.isReadOnly && user?._id !== room?.ownerId;
+  const isReadOnly = room?.writeAccessUserId 
+    ? room.writeAccessUserId !== user?._id 
+    : room?.ownerId !== user?._id;
 
   return (
     <div style={{ display:'flex',flexDirection:'column',height: windowHeight ? `${windowHeight}px` : '100vh',overflow:'hidden',background:'var(--cc-bg, #050505)' }}>
@@ -527,6 +539,41 @@ export default function EditorPage() {
             }}>
               <span className="material-symbols-outlined" style={{ fontSize:13 }}>{icon}</span>
               {room?.language||'javascript'}
+            </div>
+          )}
+
+          {/* Write Access Indicator / Request Button */}
+          {!isMobile && room && (
+            <div style={{ marginLeft: 6 }}>
+              {isReadOnly ? (
+                <button
+                  onClick={() => {
+                    socket.emit('request-write-access', { roomId });
+                    toast('Requested write access!', { icon: '📨', id: 'req-access' });
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '4px 10px', borderRadius: 7, cursor: 'pointer',
+                    background: 'rgba(139,92,246,.15)', border: '1px solid rgba(139,92,246,.3)',
+                    color: '#A78BFA', fontSize: 11, fontWeight: 600, transition: '.15s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(139,92,246,.25)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(139,92,246,.15)'}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }}>lock</span>
+                  Request Write Access
+                </button>
+              ) : (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px', borderRadius: 7,
+                  background: 'rgba(34,197,94,.15)', border: '1px solid rgba(34,197,94,.3)',
+                  color: '#4ADE80', fontSize: 11, fontWeight: 600,
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }}>edit</span>
+                  You have write access
+                </div>
+              )}
             </div>
           )}
         </div>

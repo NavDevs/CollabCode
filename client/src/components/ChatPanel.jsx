@@ -122,7 +122,56 @@ export default function ChatPanel({ roomId, socket, user, users = [], onLeaveRoo
   );
 
   /* ── System message bubble ── */
-  const SystemMsg = ({ msg }) => (
+  const SystemMsg = ({ msg }) => {
+    if (msg.type === 'permission_request') {
+      const isHolder = room?.writeAccessUserId ? room.writeAccessUserId === user?._id : room?.ownerId === user?._id;
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '6px 0' }}>
+          <div style={{ background: 'rgba(139,92,246,.1)', border: '1px solid rgba(139,92,246,.2)', padding: '8px 14px', borderRadius: 12, textAlign: 'center', maxWidth: '90%' }}>
+            <div style={{ fontSize: 12, color: '#E5E7EB', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#A78BFA' }}>vpn_key</span>
+              {msg.message}
+            </div>
+            {isHolder && msg.userId !== user?._id && (
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10 }}>
+                <button
+                  onClick={() => socket.emit('grant-write-access', { roomId, targetUserId: msg.userId, targetUsername: msg.username })}
+                  style={{ background: '#22C55E', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: '.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.1)'}
+                  onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => socket.emit('reject-write-access', { roomId, targetUsername: msg.username })}
+                  style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', color: '#FCA5A5', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600, transition: '.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,.2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,.1)'}
+                >
+                  Reject
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (msg.type === 'permission_granted' || msg.type === 'permission_rejected') {
+      const isGranted = msg.type === 'permission_granted';
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0' }}>
+          <div style={{ background: isGranted ? 'rgba(34,197,94,.08)' : 'rgba(239,68,68,.08)', border: `1px solid ${isGranted ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)'}`, padding: '4px 12px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 13, color: isGranted ? '#22C55E' : '#EF4444' }}>
+              {isGranted ? 'check_circle' : 'cancel'}
+            </span>
+            <span style={{ fontSize: 11, color: isGranted ? '#4ADE80' : '#FCA5A5', fontWeight: 500 }}>{msg.message}</span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
       padding: '6px 0', margin: '4px 0',
@@ -130,7 +179,7 @@ export default function ChatPanel({ roomId, socket, user, users = [], onLeaveRoo
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '4px 12px', borderRadius: 999,
-        background: msg.type === 'system' && msg.message?.includes('joined')
+        background: msg.message?.includes('joined')
           ? 'rgba(34,197,94,.08)' : 'rgba(239,68,68,.06)',
         border: msg.message?.includes('joined')
           ? '1px solid rgba(34,197,94,.15)' : '1px solid rgba(239,68,68,.1)',
@@ -148,7 +197,7 @@ export default function ChatPanel({ roomId, socket, user, users = [], onLeaveRoo
         <span style={{ fontSize: 10, color: '#4B5563' }}>{fmtTime(msg.timestamp)}</span>
       </div>
     </div>
-  );
+  )};
 
   return (
     <aside
@@ -200,8 +249,8 @@ export default function ChatPanel({ roomId, socket, user, users = [], onLeaveRoo
             ) : (
               <>
                 {msgs.map((msg, i) => {
-                  // System messages (join/leave)
-                  if (msg.type === 'system') {
+                  // System messages
+                  if (['system', 'permission_request', 'permission_granted', 'permission_rejected'].includes(msg.type)) {
                     return <SystemMsg key={msg.id || `sys-${i}`} msg={msg} />;
                   }
 

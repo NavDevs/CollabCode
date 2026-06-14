@@ -7,8 +7,10 @@ const {
   getUserRooms,
   leaveRoom,
   updateRoomSettings,
+  updateRoomSettings,
   getRoomMessages,
   deleteRoom,
+  updateWriteAccess,
 } = require('../controllers/room.controller');
 const auth = require('../middleware/auth');
 
@@ -32,6 +34,9 @@ router.delete('/:roomId/leave', leaveRoom);
 
 // PUT /api/rooms/:roomId/settings - Update room settings
 router.put('/:roomId/settings', updateRoomSettings);
+
+// PUT /api/rooms/:roomId/write-access - Transfer write access
+router.put('/:roomId/write-access', updateWriteAccess);
 
 // GET /api/rooms/:roomId/messages - Get chat history
 router.get('/:roomId/messages', getRoomMessages);

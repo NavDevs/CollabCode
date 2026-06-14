@@ -52,9 +52,10 @@ const roomSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
-  isReadOnly: {
-    type: Boolean,
-    default: false,
+  writeAccessUserId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
   },
   createdAt: {
     type: Date,
