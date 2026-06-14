@@ -72,6 +72,11 @@ app.use('/api/proxy/:port', (req, res) => {
     return res.status(400).json({ error: 'Invalid port' });
   }
 
+  // Force trailing slash for the base proxy route so relative paths in HTML resolve correctly
+  if (req.originalUrl === `/api/proxy/${port}`) {
+    return res.redirect(301, `/api/proxy/${port}/`);
+  }
+
   const httpLib = require('http');
   const targetPath = req.url || '/';
   const proxyBase = `/api/proxy/${port}`;

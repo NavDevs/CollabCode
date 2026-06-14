@@ -285,7 +285,7 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
         const port = match[1];
         if (!detectedPorts.has(port)) {
           detectedPorts.add(port);
-          const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
+          const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}/` : `/api/proxy/${port}/`;
           emit('stdout', `\n🌐 Live Preview: ${proxyUrl}\n`);
 
           // This is a web server — cancel the timeout so it stays alive
