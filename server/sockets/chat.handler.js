@@ -143,6 +143,15 @@ const registerChatHandler = (io, socket) => {
       console.error('reject-write-access error:', err);
     }
   });
+
+  // Terminal Mirroring Events
+  socket.on('terminal-visibility-change', ({ roomId, showTerminal }) => {
+    socket.to(roomId).emit('terminal-visibility-change', { showTerminal });
+  });
+
+  socket.on('terminal-output', ({ roomId, data }) => {
+    socket.to(roomId).emit('terminal-output', { data });
+  });
 };
 
 module.exports = { registerChatHandler };

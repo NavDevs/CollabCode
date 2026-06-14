@@ -4,7 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 
-export default function WebTerminal({ socket, roomId, height = 260, onResize }) {
+export default function WebTerminal({ socket, roomId, isReadOnly, height = 260, onResize }) {
   const termRef    = useRef(null);
   const xtermRef   = useRef(null);
   const fitRef     = useRef(null);
@@ -27,6 +27,11 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
   useEffect(() => {
     isInstallingRef.current = isInstalling;
   }, [isInstalling]);
+
+  const isReadOnlyRef = useRef(isReadOnly);
+  useEffect(() => {
+    isReadOnlyRef.current = isReadOnly;
+  }, [isReadOnly]);
 
   // Boot terminal UI and connect to server
   useEffect(() => {
@@ -81,10 +86,8 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
 
     // Forward keystrokes to server (use ref to avoid stale closure)
     term.onData((data) => {
-      if (socketRef.current) {
+      if (socketRef.current && !isReadOnlyRef.current) {
         socketRef.current.emit('terminal-input', data);
-        // Detect install commands
-        // We track this via the output, not input, to be more reliable
       }
     });
 
@@ -164,7 +167,7 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
     socket.on('exec-done', onExecDone);
 
     // Start the terminal session on the server
-    if (roomId) {
+    if (roomId && !isReadOnly) {
       socket.emit('terminal-start', { roomId });
       started.current = true;
     }
@@ -175,10 +178,20 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
       socket.off('exec-start', onExecStart);
       socket.off('exec-output', onExecOutput);
       socket.off('exec-done', onExecDone);
-      socket.emit('terminal-kill');
+      if (!isReadOnly) {
+        socket.emit('terminal-kill');
+      }
       started.current = false;
     };
-  }, [socket, roomId]);
+  }, [socket, roomId, isReadOnly]);
+
+  // When readOnly changes to false, and terminal isn't started yet
+  useEffect(() => {
+    if (!isReadOnly && roomId && socket && !started.current) {
+      socket.emit('terminal-start', { roomId });
+      started.current = true;
+    }
+  }, [isReadOnly, roomId, socket]);
 
   // Drag to resize
   const handleDragStart = useCallback((e) => {
@@ -256,10 +269,16 @@ export default function WebTerminal({ socket, roomId, height = 260, onResize }) 
         background: '#1E1E1E',
       }}>
         <div style={{ display: 'flex', alignItems: 'stretch' }}>
-          <button style={tabStyle(activeTab === 'terminal')} onClick={() => setActiveTab('terminal')}>
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>terminal</span>
-            TERMINAL
-          </button>
+        <div style={{ display:'flex',alignItems:'center',gap:8,padding:'0 16px',background:activeTab==='terminal'?'transparent':'rgba(255,255,255,.05)',color:activeTab==='terminal'?'#F3F4F6':'#9CA3AF',fontSize:13,fontWeight:600,cursor:'pointer',borderBottom:activeTab==='terminal'?'2px solid #F3F4F6':'2px solid transparent' }} onClick={()=>setActiveTab('terminal')}>
+          <span className="material-symbols-outlined" style={{ fontSize:15 }}>terminal</span>
+          Terminal
+          {isReadOnly && (
+            <span style={{ marginLeft:8, fontSize:10, background:'rgba(52,211,153,0.15)', color:'#34D399', padding:'2px 6px', borderRadius:4, border:'1px solid rgba(52,211,153,0.3)', display:'flex', alignItems:'center', gap:4 }}>
+              <span className="material-symbols-outlined anim-spin" style={{ fontSize:12 }}>sync</span>
+              Mirroring Host
+            </span>
+          )}
+        </div>
           <button style={tabStyle(activeTab === 'output')} onClick={() => setActiveTab('output')}>
             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>output</span>
             OUTPUT

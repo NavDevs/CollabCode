@@ -401,6 +401,10 @@ export default function EditorPage() {
       }
     });
 
+    socket.on('terminal-visibility-change', ({ showTerminal }) => {
+      setShowTerminal(showTerminal);
+    });
+
     socket.on('cursor-updated', ({ userId, username, avatarColor, cursor }) =>
       setCursors(p => ({ ...p, [userId]: { username, avatarColor, cursor } }))
     );
@@ -714,7 +718,13 @@ export default function EditorPage() {
             icon="terminal"
             title="Toggle terminal"
             active={showTerminal}
-            onClick={() => setShowTerminal(!showTerminal)}
+            onClick={() => {
+              const newState = !showTerminal;
+              setShowTerminal(newState);
+              if (!isReadOnly && socket && connected) {
+                socket.emit('terminal-visibility-change', { roomId, showTerminal: newState });
+              }
+            }}
           />
 
           {/* Dashboard */}
@@ -851,6 +861,7 @@ export default function EditorPage() {
               <div style={{ flex:1, position:'relative' }}>
                 <Editor
                   ref={editorRef}
+                  path={activePath}
                   language={getLangFromPath(activePath)}
                   readOnly={isReadOnly}
                   value={code}
@@ -878,6 +889,7 @@ export default function EditorPage() {
               <WebTerminal
                 socket={socket}
                 roomId={roomId}
+                isReadOnly={isReadOnly}
                 height={termHeight}
                 onResize={(diff) => setTermHeight(h => Math.max(120, Math.min(600, h + diff)))}
               />

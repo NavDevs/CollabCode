@@ -118,7 +118,7 @@ function registerTerminalHandler(io, socket) {
         });
       }
     } catch (err) {
-      socket.emit('terminal-output', `\x1b[31mFailed to start shell: ${err.message}\x1b[0m\r\n`);
+      io.to(roomId).emit('terminal-output', `\x1b[31mFailed to start shell: ${err.message}\x1b[0m\r\n`);
       return;
     }
 
@@ -138,7 +138,7 @@ function registerTerminalHandler(io, socket) {
           if (!detectedPorts.has(port)) {
             detectedPorts.add(port);
             const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
-            socket.emit('terminal-output', `\r\n\x1b[1;36m🌐 Live Preview: \x1b[4m${proxyUrl}\x1b[0m\r\n`);
+            io.to(roomId).emit('terminal-output', `\r\n\x1b[1;36m🌐 Live Preview: \x1b[4m${proxyUrl}\x1b[0m\r\n`);
             // Allow re-detection after 10s
             setTimeout(() => detectedPorts.delete(port), 10000);
           }
@@ -154,30 +154,30 @@ function registerTerminalHandler(io, socket) {
     // Stream stdout
     proc.stdout.on('data', (data) => {
       const text = data.toString('utf8');
-      socket.emit('terminal-output', text);
+      io.to(roomId).emit('terminal-output', text);
       checkForPorts(text);
     });
 
     // Stream stderr
     proc.stderr.on('data', (data) => {
       const text = data.toString('utf8');
-      socket.emit('terminal-output', text);
+      io.to(roomId).emit('terminal-output', text);
       checkForPorts(text);
     });
 
     // Handle exit
     proc.on('close', (code) => {
       syncFilesFromDisk(roomId, workDir).catch(() => {});
-      socket.emit('terminal-output', `\r\n\x1b[90m[Session ended with code ${code}]\x1b[0m\r\n`);
+      io.to(roomId).emit('terminal-output', `\r\n\x1b[90m[Session ended with code ${code}]\x1b[0m\r\n`);
       terminalSessions.delete(socket.id);
     });
 
     proc.on('error', (err) => {
-      socket.emit('terminal-output', `\r\n\x1b[31m[Terminal error: ${err.message}]\x1b[0m\r\n`);
+      io.to(roomId).emit('terminal-output', `\r\n\x1b[31m[Terminal error: ${err.message}]\x1b[0m\r\n`);
       terminalSessions.delete(socket.id);
     });
 
-    socket.emit('terminal-ready');
+    io.to(roomId).emit('terminal-ready');
     console.log(`📟 Terminal started for ${socket.user?.username || 'unknown'} in room ${roomId} (${fileCount} files)`);
   });
 

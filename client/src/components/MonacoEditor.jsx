@@ -126,7 +126,7 @@ const THEMES = {
   },
 };
 
-const Editor = forwardRef(function Editor({ value, language, onChange, onCursorChange, readOnly = false }, ref) {
+const Editor = forwardRef(function Editor({ path, value, language, onChange, onCursorChange, readOnly = false }, ref) {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const { settings } = useSettings();
@@ -197,6 +197,7 @@ const Editor = forwardRef(function Editor({ value, language, onChange, onCursorC
   return (
     <MonacoEditor
       height="100%"
+      path={path}
       language={LANG_MAP[language] || 'javascript'}
       value={value}
       onChange={onChange}
