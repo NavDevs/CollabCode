@@ -154,10 +154,10 @@ export default function Landing() {
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8 }}>
           <button
             onClick={() => navigate('/login')}
-            style={{ padding: '8px 18px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,255,255,.1)', color: '#D1D5DB', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all .15s' }}
+            style={{ padding: isMobile ? '6px 12px' : '8px 18px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,255,255,.1)', color: '#D1D5DB', fontSize: isMobile ? 12 : 14, fontWeight: 500, cursor: 'pointer', transition: 'all .15s' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.3)'; e.currentTarget.style.color = '#FFFFFF'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.1)'; e.currentTarget.style.color = '#D1D5DB'; }}
           >
@@ -165,13 +165,13 @@ export default function Landing() {
           </button>
           <button
             onClick={() => navigate('/register')}
-            style={{ padding: '8px 18px', borderRadius: 9, background: '#FFFFFF', color: '#000000', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', boxShadow: '0 4px 16px rgba(255,255,255,.15)', transition: 'all .15s', transform: 'scale(1)' }}
+            style={{ padding: isMobile ? '6px 12px' : '8px 18px', borderRadius: 9, background: '#FFFFFF', color: '#000000', fontSize: isMobile ? 12 : 14, fontWeight: 600, cursor: 'pointer', border: 'none', boxShadow: '0 4px 16px rgba(255,255,255,.15)', transition: 'all .15s', transform: 'scale(1)' }}
             onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
             onMouseUp={e => e.currentTarget.style.transform = 'translateY(-1px)'}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(255,255,255,.25)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,255,255,.15)'; }}
           >
-            Get started free
+            {isMobile ? 'Get started' : 'Get started free'}
           </button>
         </div>
       </nav>

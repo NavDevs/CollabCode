@@ -837,7 +837,8 @@ export default function EditorPage() {
         </main>
       </div>
 
-      <Footer language={room?.language||'JavaScript'} line={pos.line} col={pos.col} />
+      {/* ══════════════════════ FOOTER ══════════════════════ */}
+      {!isMobile && <Footer language={room?.language||'JavaScript'} line={pos.line} col={pos.col} />}
 
       {/* Share modal */}
       {showShare && <ShareModal roomId={roomId} onClose={() => setShowShare(false)} />}
