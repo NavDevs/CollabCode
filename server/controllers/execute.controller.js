@@ -186,8 +186,16 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
 
   // Kill any existing execution for this room
   if (runningProcesses.has(roomId)) {
-    try { killTree(runningProcesses.get(roomId).pid, 'SIGKILL'); } catch {}
+    const oldPid = runningProcesses.get(roomId).pid;
     runningProcesses.delete(roomId);
+    try {
+      await new Promise(resolve => {
+        killTree(oldPid, 'SIGKILL', (err) => {
+          // Wait an extra 500ms after the kill signal to ensure the OS has fully released the port TCP bind
+          setTimeout(resolve, 500);
+        });
+      });
+    } catch {}
   }
 
   // Announce run start
