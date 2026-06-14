@@ -848,6 +848,7 @@ export default function EditorPage() {
             {/* Tab bar */}
             <div style={{ height:36,flexShrink:0,display:'flex',alignItems:'center',background:'rgba(5,5,12,.95)',borderBottom:'1px solid rgba(255,255,255,.05)', overflowX:'auto' }} className="scroll">
             {openPaths.map(p => {
+                if (!p) return null;
                 const isActive = activePath === p;
                 // Show folder/file for nested files, just filename for root
                 const parts = p.split('/').filter(Boolean);

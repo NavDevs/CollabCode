@@ -263,6 +263,7 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
     const root = { path: '/', name: '', type: 'folder', children: {} };
     
     files.forEach(file => {
+      if (!file || !file.path) return;
       const parts = file.path.split('/').filter(Boolean);
       let current = root;
       for (let i = 0; i < parts.length; i++) {
