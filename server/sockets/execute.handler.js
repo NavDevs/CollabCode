@@ -7,8 +7,20 @@ function registerExecuteHandler(io, socket) {
     if (!roomId || !path) return;
 
     // Only run if user is actually in the room
-    if (!socket.rooms_joined?.has(roomId)) {
+    if (!socket.rooms.has(roomId)) {
       socket.emit('exec-error', { message: 'You must join the room first.' });
+      return;
+    }
+
+    // Verify write access
+    const Room = require('../models/Room');
+    const room = await Room.findOne({ roomId });
+    if (!room) return;
+    const hasAccess = room.writeAccessUserId 
+      ? room.writeAccessUserId.toString() === socket.user._id.toString() 
+      : room.ownerId.toString() === socket.user._id.toString();
+    if (!hasAccess) {
+      socket.emit('exec-error', { message: 'Only the writer can run code.' });
       return;
     }
 

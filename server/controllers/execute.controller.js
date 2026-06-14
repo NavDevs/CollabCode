@@ -232,6 +232,7 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
     child = spawn(cmd, args, {
       cwd: fileDir,
       env: { ...process.env, NODE_ENV: 'sandbox' },
+      shell: os.platform() === 'win32',
     });
   } catch (err) {
     // Try fallback if available
@@ -241,6 +242,7 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
         child = spawn(fb.cmd, fb.args, {
           cwd: fileDir,
           env: { ...process.env, NODE_ENV: 'sandbox' },
+          shell: os.platform() === 'win32',
         });
       } catch (fbErr) {
         emit('stderr', `✗ Could not start runtime "${cmd}" or "${fb.cmd}": ${fbErr.message}\n`);
@@ -348,7 +350,7 @@ function stopExecution(io, roomId) {
 function runProcess(cmd, args, cwd, timeout) {
   return new Promise((resolve, reject) => {
     try {
-      const child = spawn(cmd, args, { cwd, timeout });
+      const child = spawn(cmd, args, { cwd, timeout, shell: os.platform() === 'win32' });
       let stdout = '';
       let stderr = '';
       child.stdout.on('data', d => stdout += d.toString());

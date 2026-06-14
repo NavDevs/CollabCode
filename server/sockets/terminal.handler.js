@@ -63,6 +63,18 @@ function registerTerminalHandler(io, socket) {
   socket.on('terminal-start', async ({ roomId }) => {
     if (!roomId) return;
 
+    // Verify write access
+    const Room = require('../models/Room');
+    const room = await Room.findOne({ roomId });
+    if (!room) return;
+    const hasAccess = room.writeAccessUserId 
+      ? room.writeAccessUserId.toString() === socket.user._id.toString() 
+      : room.ownerId.toString() === socket.user._id.toString();
+    if (!hasAccess) {
+      socket.emit('terminal-output', '\x1b[31mError: Only the writer can start the terminal.\x1b[0m\r\n');
+      return;
+    }
+
     // Kill existing session
     if (terminalSessions.has(socket.id)) {
       const old = terminalSessions.get(socket.id);
@@ -77,45 +89,54 @@ function registerTerminalHandler(io, socket) {
     // Sync files from DB
     const fileCount = await syncFilesToDisk(roomId, workDir);
 
-    // Write bashrc
-    const bashrcPath = path.join(workDir, '.bashrc');
-    fs.writeFileSync(bashrcPath, [
-      `export PS1='\\[\\033[1;32m\\]collabcode\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]\\$ '`,
-      `export HISTSIZE=5000`,
-      `export HISTFILESIZE=10000`,
-      `export HISTFILE="${workDir}/.bash_history"`,
-      `shopt -s histappend 2>/dev/null`,
-      `alias ll='ls -la --color=auto'`,
-      `alias la='ls -A --color=auto'`,
-      `alias cls='clear'`,
-      `export NODE_PATH="${workDir}/node_modules"`,
-    ].join('\n'), 'utf8');
-
-    const shellEnv = {
-      ...process.env,
-      TERM: 'xterm-256color',
-      HOME: workDir,
-      PATH: process.env.PATH,
-      LANG: 'en_US.UTF-8',
-      SHELL: '/bin/bash',
-      COLORTERM: 'truecolor',
-    };
-
+    const isWin = os.platform() === 'win32';
+    
     let proc;
     try {
-      // Try method 1: 'script' command for proper PTY
-      if (commandExists('script')) {
-        proc = spawn('script', ['-qfc', `bash --rcfile "${bashrcPath}" -i`, '/dev/null'], {
+      if (isWin) {
+        // Windows fallback
+        proc = spawn('powershell.exe', ['-NoLogo'], {
           cwd: workDir,
-          env: shellEnv,
-        });
-      } else {
-        // Fallback: direct bash (no PTY, but works)
-        proc = spawn('bash', ['--rcfile', bashrcPath, '-i'], {
-          cwd: workDir,
-          env: shellEnv,
+          env: { ...process.env, TERM: 'xterm-256color' },
           stdio: ['pipe', 'pipe', 'pipe'],
         });
+      } else {
+        // Write bashrc
+        const bashrcPath = path.join(workDir, '.bashrc');
+        fs.writeFileSync(bashrcPath, [
+          `export PS1='\\[\\033[1;32m\\]collabcode\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]\\$ '`,
+          `export HISTSIZE=5000`,
+          `export HISTFILESIZE=10000`,
+          `export HISTFILE="${workDir}/.bash_history"`,
+          `shopt -s histappend 2>/dev/null`,
+          `alias ll='ls -la --color=auto'`,
+          `alias la='ls -A --color=auto'`,
+          `alias cls='clear'`,
+          `export NODE_PATH="${workDir}/node_modules"`,
+        ].join('\n'), 'utf8');
+
+        const shellEnv = {
+          ...process.env,
+          TERM: 'xterm-256color',
+          HOME: workDir,
+          PATH: process.env.PATH,
+          LANG: 'en_US.UTF-8',
+          SHELL: '/bin/bash',
+          COLORTERM: 'truecolor',
+        };
+
+        if (commandExists('script')) {
+          proc = spawn('script', ['-qfc', `bash --rcfile "${bashrcPath}" -i`, '/dev/null'], {
+            cwd: workDir,
+            env: shellEnv,
+          });
+        } else {
+          proc = spawn('bash', ['--rcfile', bashrcPath, '-i'], {
+            cwd: workDir,
+            env: shellEnv,
+            stdio: ['pipe', 'pipe', 'pipe'],
+          });
+        }
       }
     } catch (err) {
       io.to(roomId).emit('terminal-output', `\x1b[31mFailed to start shell: ${err.message}\x1b[0m\r\n`);
