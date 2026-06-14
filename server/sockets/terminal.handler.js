@@ -158,7 +158,7 @@ function registerTerminalHandler(io, socket) {
           const port = match[1];
           if (!detectedPorts.has(port)) {
             detectedPorts.add(port);
-            const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}` : `/api/proxy/${port}`;
+            const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}/` : `/api/proxy/${port}/`;
             io.to(roomId).emit('terminal-output', `\r\n\x1b[1;36m🌐 Live Preview: \x1b[4m${proxyUrl}\x1b[0m\r\n`);
             // Allow re-detection after 10s
             setTimeout(() => detectedPorts.delete(port), 10000);
