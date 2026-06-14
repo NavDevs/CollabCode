@@ -182,6 +182,15 @@ function registerTerminalHandler(io, socket) {
     // Stream stderr
     proc.stderr.on('data', (data) => {
       const text = data.toString('utf8');
+      
+      // Check for EADDRINUSE (Port clash)
+      if (text.includes('EADDRINUSE')) {
+        const match = text.match(/address already in use :::(\d+)/);
+        const port = match ? match[1] : 'that port';
+        io.to(roomId).emit('terminal-output', `\r\n\x1b[1;31m❌ PORT CONFLICT ERROR: Port ${port} is currently being used by another room!\x1b[0m\r\n`);
+        io.to(roomId).emit('terminal-output', `\x1b[33m💡 Fix: Simply change the port number in your code (e.g. use 8081, 8082) or stop the server in your other room.\x1b[0m\r\n\r\n`);
+      }
+      
       io.to(roomId).emit('terminal-output', text);
       checkForPorts(text);
     });

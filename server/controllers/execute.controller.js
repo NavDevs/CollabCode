@@ -309,6 +309,15 @@ async function executeCode(io, roomId, targetPath, languageParam, user) {
   // Stream stderr
   child.stderr.on('data', chunk => {
     const text = chunk.toString();
+    
+    // Check for EADDRINUSE (Port clash)
+    if (text.includes('EADDRINUSE')) {
+      const match = text.match(/address already in use :::(\d+)/);
+      const port = match ? match[1] : 'that port';
+      emit('stderr', `\n\x1b[1;31m❌ PORT CONFLICT ERROR: Port ${port} is currently being used by another room!\x1b[0m\n`);
+      emit('stderr', `\x1b[33m💡 Fix: Simply change the port number in your code (e.g. use 8081, 8082) or stop the server in your other room.\x1b[0m\n\n`);
+    }
+    
     emit('stderr', text);
     detectAndEmitPort(text);
   });
