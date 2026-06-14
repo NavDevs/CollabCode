@@ -897,14 +897,37 @@ export default function EditorPage() {
                 {/* Remote cursors overlay */}
                 {Object.entries(cursors).map(([uid,d]) => {
                   if (d.path !== activePath) return null;
+                  if (uid === user?._id) return null; // Don't show local user's own cursor
+                  
                   return (
                   <div
                     key={uid}
                     className="pointer-events-none"
-                    style={{ position:'absolute',top:`${(d.cursor.line-1)*22+20}px`,left:`${(d.cursor.col-1)*8.4+56}px`,zIndex:10 }}
+                    style={{
+                      position: 'absolute',
+                      top: `${(d.cursor.line - 1) * 22 + 20}px`,
+                      left: `${(d.cursor.col - 1) * 8.4 + 58}px`,
+                      zIndex: 10,
+                      transition: 'top 0.1s ease-out, left 0.1s ease-out'
+                    }}
                   >
-                    <div style={{ width:2,height:20,background:d.avatarColor }} />
-                    <div style={{ padding:'1px 6px',borderRadius:'0 4px 4px 4px',fontSize:10,fontWeight:700,color:'#fff',background:d.avatarColor,whiteSpace:'nowrap',boxShadow:'0 2px 8px rgba(0,0,0,.4)' }}>
+                    {/* Caret Line */}
+                    <div style={{ width: 2, height: 22, background: d.avatarColor }} />
+                    {/* Name Tag */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 22,
+                      left: 2,
+                      padding: '2px 8px',
+                      borderRadius: '0px 6px 6px 6px',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#fff',
+                      background: d.avatarColor,
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                      letterSpacing: '0.2px'
+                    }}>
                       {d.username}
                     </div>
                   </div>
