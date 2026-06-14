@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Y from 'yjs';
+import { MonacoBinding } from 'y-monaco';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -190,9 +191,10 @@ export default function EditorPage() {
 
   const editorRef    = useRef(null);   // exposes getValue()
   const ydocRef      = useRef(null);   // local Y.Doc
-  const isRemoteRef  = useRef(false);  // flag to skip re-emitting remote changes
-  const activePathRef = useRef(null);  // tracks activePath for closures
-  const isSwitchingRef = useRef(false); // blocks onChange during file switch
+  const isRemoteRef = useRef(false);
+  const isSwitchingRef = useRef(false);
+  const activePathRef = useRef(activePath);
+  const bindingRef = useRef(null);
 
   /* ── Load room ── */
   useEffect(() => {
@@ -235,38 +237,90 @@ export default function EditorPage() {
     let cancelled = false;
     let gotContent = false; // track if we received content
 
-    // Request Yjs state from server (fast, ~50ms via WebSocket)
+    const attachBinding = () => {
+      if (cancelled) return;
+      const editor = editorRef.current?.getEditor?.();
+      if (editor && editor.getModel()) {
+        if (bindingRef.current) bindingRef.current.destroy();
+        bindingRef.current = new MonacoBinding(ytext, editor.getModel(), new Set([editor]), null);
+        
+        ydoc.on('update', (update, origin) => {
+          // If the update was local (typing in the editor), broadcast it
+          if (origin !== 'remote') {
+            socket.emit('yjs-update', { roomId, path: activePathRef.current, update: Array.from(update) });
+          }
+          // Update cache
+          fileCacheRef.current[activePathRef.current] = ytext.toString();
+          
+          // Debounced save to DB
+          if (activePathRef.current && roomId) {
+            clearTimeout(window.__saveTimer);
+            window.__saveTimer = setTimeout(() => {
+              api.put(`/workspaces/${roomId}/files/content`, {
+                path: activePathRef.current,
+                content: ytext.toString(),
+              }).catch(() => {});
+            }, 1500);
+          }
+        });
+      } else {
+        setTimeout(attachBinding, 50);
+      }
+    };
+
+    const loadFromAPI = async (path, isCancelled) => {
+      try {
+        const res = await api.get(`/workspaces/${roomId}/files/content?path=${encodeURIComponent(path)}`);
+        if (isCancelled) return;
+        const data = res.data.content || '';
+        setCode(data);
+        fileCacheRef.current[path] = data;
+        if (ydocRef.current) {
+          const yt = ydocRef.current.getText('monaco');
+          ydocRef.current.transact(() => {
+            yt.delete(0, yt.length);
+            yt.insert(0, data);
+          }, 'remote');
+        }
+        attachBinding();
+      } catch (err) {
+        if (isCancelled) return;
+        console.error('[Yjs] loadFromAPI error:', err);
+        toast.error('Failed to load file');
+        attachBinding();
+      }
+    };
+
+    // Request Yjs state from server
     socket.emit('yjs-sync-request', { roomId, path: activePath });
 
     const handleSyncInit = ({ roomId: r, path: p, state }) => {
       if (r !== roomId || p !== activePath || cancelled) return;
       gotContent = true;
       if (state && state.length > 0) {
-        isRemoteRef.current = true;
-        Y.applyUpdate(ydoc, new Uint8Array(state));
+        Y.applyUpdate(ydoc, new Uint8Array(state), 'remote');
         const content = ytext.toString();
         setCode(content);
         fileCacheRef.current[activePath] = content;
-        isRemoteRef.current = false;
+        attachBinding();
       } else if (!fileCacheRef.current[activePath]) {
-        // No Yjs state and no cache — load from DB as fallback
         loadFromAPI(activePath, cancelled);
+      } else {
+        ydoc.transact(() => {
+          ytext.insert(0, fileCacheRef.current[activePath]);
+        }, 'remote');
+        attachBinding();
       }
     };
 
     const handleUpdate = ({ roomId: r, path: p, update }) => {
       if (r !== roomId || p !== activePath || cancelled) return;
       if (update) {
-        isRemoteRef.current = true;
-        Y.applyUpdate(ydoc, new Uint8Array(update));
-        const content = ytext.toString();
-        setCode(content);
-        fileCacheRef.current[activePath] = content;
-        isRemoteRef.current = false;
+        Y.applyUpdate(ydoc, new Uint8Array(update), 'remote');
+        fileCacheRef.current[activePath] = ytext.toString();
       }
     };
 
-    // Fallback: if Yjs doesn't respond within 2s, load from HTTP API
     const fallbackTimer = setTimeout(() => {
       if (!gotContent && !cancelled && !fileCacheRef.current[activePath]) {
         console.log('[Yjs] Timeout — falling back to HTTP API for', activePath);
@@ -280,6 +334,10 @@ export default function EditorPage() {
     return () => {
       cancelled = true;
       clearTimeout(fallbackTimer);
+      if (bindingRef.current) {
+        bindingRef.current.destroy();
+        bindingRef.current = null;
+      }
       // Cache current content before leaving
       const currentContent = editorRef.current?.getValue?.();
       if (currentContent) {
@@ -796,38 +854,6 @@ export default function EditorPage() {
                   language={getLangFromPath(activePath)}
                   readOnly={isReadOnly}
                   value={code}
-                  onChange={val => {
-                    // GUARD: Don't process changes during file switch
-                    if (isSwitchingRef.current || isRemoteRef.current) return;
-                    
-                    const currentPath = activePathRef.current;
-                    if (!currentPath) return;
-                    
-                    setCode(val || '');
-                    fileCacheRef.current[currentPath] = val || '';
-                    
-                    // Broadcast change via Yjs
-                    if (ydocRef.current && socket && connected) {
-                      const ydoc = ydocRef.current;
-                      const ytext = ydoc.getText('monaco');
-                      ydoc.transact(() => {
-                        ytext.delete(0, ytext.length);
-                        ytext.insert(0, val || '');
-                      });
-                      const update = Y.encodeStateAsUpdate(ydoc);
-                      socket.emit('yjs-update', { roomId, path: currentPath, update: Array.from(update) });
-                    }
-                    // Debounced save to DB
-                    if (currentPath && roomId) {
-                      clearTimeout(window.__saveTimer);
-                      window.__saveTimer = setTimeout(() => {
-                        api.put(`/workspaces/${roomId}/files/content`, {
-                          path: currentPath,
-                          content: val || '',
-                        }).catch(() => {});
-                      }, 1500);
-                    }
-                  }}
                   onCursorChange={onCursor}
                 />
 
