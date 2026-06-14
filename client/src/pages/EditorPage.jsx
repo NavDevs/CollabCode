@@ -158,6 +158,15 @@ export default function EditorPage() {
   const [activePath,  setActivePath]  = useState(null);
   const [openPaths,   setOpenPaths]   = useState([]);
 
+  const isReadOnly = room?.writeAccessUserId 
+    ? room.writeAccessUserId !== user?._id 
+    : room?.ownerId !== user?._id;
+
+  const isReadOnlyRef = useRef(isReadOnly);
+  useEffect(() => {
+    isReadOnlyRef.current = isReadOnly;
+  }, [isReadOnly]);
+
   // Panel visibility & sizing
   const [showExplorer, setShowExplorer] = useState(window.innerWidth > 768);
   const [showChat, setShowChat] = useState(window.innerWidth > 768);
@@ -298,7 +307,13 @@ export default function EditorPage() {
       if (r !== roomId || p !== activePath || cancelled) return;
       gotContent = true;
       if (state && state.length > 0) {
+        const editor = editorRef.current?.getEditor?.();
+        if (editor && isReadOnlyRef.current) editor.updateOptions({ readOnly: false });
+
         Y.applyUpdate(ydoc, new Uint8Array(state), 'remote');
+        
+        if (editor && isReadOnlyRef.current) editor.updateOptions({ readOnly: true });
+
         const content = ytext.toString();
         setCode(content);
         fileCacheRef.current[activePath] = content;
@@ -306,9 +321,15 @@ export default function EditorPage() {
       } else if (!fileCacheRef.current[activePath]) {
         loadFromAPI(activePath, cancelled);
       } else {
+        const editor = editorRef.current?.getEditor?.();
+        if (editor && isReadOnlyRef.current) editor.updateOptions({ readOnly: false });
+
         ydoc.transact(() => {
           ytext.insert(0, fileCacheRef.current[activePath]);
         }, 'remote');
+
+        if (editor && isReadOnlyRef.current) editor.updateOptions({ readOnly: true });
+
         attachBinding();
       }
     };
@@ -316,7 +337,13 @@ export default function EditorPage() {
     const handleUpdate = ({ roomId: r, path: p, update }) => {
       if (r !== roomId || p !== activePath || cancelled) return;
       if (update) {
+        const editor = editorRef.current?.getEditor?.();
+        if (editor && isReadOnlyRef.current) editor.updateOptions({ readOnly: false });
+
         Y.applyUpdate(ydoc, new Uint8Array(update), 'remote');
+
+        if (editor && isReadOnlyRef.current) editor.updateOptions({ readOnly: true });
+        
         fileCacheRef.current[activePath] = ytext.toString();
       }
     };
@@ -542,10 +569,6 @@ export default function EditorPage() {
       </div>
     </div>
   );
-
-  const isReadOnly = room?.writeAccessUserId 
-    ? room.writeAccessUserId !== user?._id 
-    : room?.ownerId !== user?._id;
 
   return (
     <div style={{ display:'flex',flexDirection:'column',height: windowHeight ? `${windowHeight}px` : '100vh',overflow:'hidden',background:'var(--cc-bg, #050505)' }}>
