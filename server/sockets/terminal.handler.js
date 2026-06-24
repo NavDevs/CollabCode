@@ -15,10 +15,12 @@ function makePortRegexes() {
     /(?:port|PORT)\s+(\d{4,5})/gi,
     /listening\s+(?:on\s+)?(?:port\s+)?(\d{4,5})/gi,
     /started\s+(?:server\s+)?on\s+(?:port\s+)?(\d{4,5})/gi,
-    /running\s+on\s+(?:port\s+)?(\d{4,5})/gi,
-    /:\s*(\d{4,5})/g,
+    /running\s+on\s+(?:http:\/\/\S*?:)?(\d{4,5})/gi,
   ];
 }
+
+// Common developer ports that are always valid to proxy
+const VALID_PORT_RANGE = (p) => p >= 1024 && p <= 49151;
 
 // Sync workspace files from MongoDB to disk
 async function syncFilesToDisk(roomId, workDir) {
@@ -216,7 +218,7 @@ function registerTerminalHandler(io, socket) {
         while ((match = regex.exec(searchText)) !== null) {
           const port = parseInt(match[1], 10);
           // Ignore obviously wrong ports
-          if (port < 1024 || port > 65535) continue;
+          if (!VALID_PORT_RANGE(port)) continue;
           const portStr = String(port);
           if (!detectedPorts.has(portStr)) {
             detectedPorts.add(portStr);
