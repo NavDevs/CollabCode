@@ -8,9 +8,17 @@ const WorkspaceFile = require('../models/WorkspaceFile');
 const terminalSessions = new Map();
 
 // Detect port patterns in terminal output
-const PORT_REGEX = /(?:localhost|127\.0\.0\.1):(\d{4,5})/gi;
-const PORT_REGEX2 = /(?:port|PORT)\s+(\d{4,5})/g;
-const LISTENING_REGEX = /listening\s+(?:on\s+)?(?:port\s+)?(\d{4,5})/gi;
+// NOTE: These are factory functions — always create fresh instances to avoid shared `lastIndex` state across sessions
+function makePortRegexes() {
+  return [
+    /(?:localhost|127\.0\.0\.1):(\d{4,5})/gi,
+    /(?:port|PORT)\s+(\d{4,5})/gi,
+    /listening\s+(?:on\s+)?(?:port\s+)?(\d{4,5})/gi,
+    /started\s+(?:server\s+)?on\s+(?:port\s+)?(\d{4,5})/gi,
+    /running\s+on\s+(?:port\s+)?(\d{4,5})/gi,
+    /:\s*(\d{4,5})/g,
+  ];
+}
 
 // Sync workspace files from MongoDB to disk
 async function syncFilesToDisk(roomId, workDir) {
@@ -185,29 +193,45 @@ function registerTerminalHandler(io, socket) {
     const detectedPorts = new Set();
     terminalSessions.set(socket.id, { process: proc, roomId, workDir });
 
-    // Detect ports in output
+    // Rolling buffer to catch port numbers split across multiple data chunks
+    let outputBuffer = '';
+    const MAX_BUFFER = 2000;
+
+    // Detect ports in output — creates FRESH regex instances every call to avoid shared lastIndex bugs
     function checkForPorts(text) {
       const baseUrl = process.env.RENDER_EXTERNAL_URL || '';
-      const allRegexes = [PORT_REGEX, PORT_REGEX2, LISTENING_REGEX];
+
+      // Append to rolling buffer and keep last MAX_BUFFER chars
+      outputBuffer += text;
+      if (outputBuffer.length > MAX_BUFFER) {
+        outputBuffer = outputBuffer.slice(outputBuffer.length - MAX_BUFFER);
+      }
+
+      // Search the buffer (not just the current chunk) so split output is caught
+      const searchText = outputBuffer;
+      const allRegexes = makePortRegexes();
 
       for (const regex of allRegexes) {
-        regex.lastIndex = 0;
         let match;
-        while ((match = regex.exec(text)) !== null) {
-          const port = match[1];
-          if (!detectedPorts.has(port)) {
-            detectedPorts.add(port);
-            const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${port}/` : `/api/proxy/${port}/`;
+        while ((match = regex.exec(searchText)) !== null) {
+          const port = parseInt(match[1], 10);
+          // Ignore obviously wrong ports
+          if (port < 1024 || port > 65535) continue;
+          const portStr = String(port);
+          if (!detectedPorts.has(portStr)) {
+            detectedPorts.add(portStr);
+            const proxyUrl = baseUrl ? `${baseUrl}/api/proxy/${portStr}/` : `/api/proxy/${portStr}/`;
             io.to(roomId).emit('terminal-output', `\r\n\x1b[1;36m🌐 Live Preview: \x1b[4m${proxyUrl}\x1b[0m\r\n`);
-            // Allow re-detection after 10s
-            setTimeout(() => detectedPorts.delete(port), 10000);
+            // Allow re-detection after 30s
+            setTimeout(() => detectedPorts.delete(portStr), 30000);
           }
         }
       }
 
-      // Reset on Ctrl+C
-      if (text.includes('^C') || text.includes('SIGINT')) {
+      // Reset on Ctrl+C / process kill
+      if (text.includes('^C') || text.includes('SIGINT') || text.includes('Process exited')) {
         detectedPorts.clear();
+        outputBuffer = '';
       }
     }
 
