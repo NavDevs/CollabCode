@@ -60,9 +60,9 @@ export default function TopNav({ subtitle, rightContent, showNav = true }) {
             <button
               onClick={() => navigate('/dashboard')}
               style={{
-                background: 'none', border: 'none', cursor: 'pointer', padding: '0 12px 0 0',
-                fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em',
                 background: 'linear-gradient(135deg,#F3F4F6 0%,#818CF8 100%)',
+                border: 'none', cursor: 'pointer', padding: '0 12px 0 0',
+                fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
               }}
             >

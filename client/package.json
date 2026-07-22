@@ -13,6 +13,7 @@
     "@clerk/clerk-react": "^5.61.8",
     "@clerk/themes": "^2.4.57",
     "@monaco-editor/react": "^4.7.0",
+    "monaco-editor": "^0.52.0",
     "@tailwindcss/vite": "^4.3.0",
     "@webcontainer/api": "^1.6.4",
     "@xterm/addon-fit": "^0.11.0",
