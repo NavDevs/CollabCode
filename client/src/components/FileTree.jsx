@@ -31,7 +31,7 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
   }, [roomId, refreshKey]);
 
   useEffect(() => {
-    if (activePath) {
+    if (activePath && typeof activePath === 'string') {
       const parts = activePath.split('/').filter(Boolean);
       let current = '';
       setExpandedFolders(prev => {
@@ -79,7 +79,7 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
     }
   };
 
-  const getExt = (name) => name.split('.').pop().toLowerCase();
+  const getExt = (name) => (name && typeof name === 'string' ? name.split('.').pop().toLowerCase() : '');
   
   const getIcon = (name) => {
     const ext = getExt(name);
@@ -160,7 +160,7 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
   };
 
   const getLanguageFromExt = (path) => {
-    const ext = path.split('.').pop().toLowerCase();
+    const ext = (path && typeof path === 'string') ? path.split('.').pop().toLowerCase() : '';
     const map = {
       js: 'javascript', jsx: 'javascript', mjs: 'javascript', cjs: 'javascript',
       ts: 'typescript', tsx: 'typescript',
@@ -263,7 +263,7 @@ export default function FileTree({ roomId, activePath, setActivePath, openPaths,
     const root = { path: '/', name: '', type: 'folder', children: {} };
     
     files.forEach(file => {
-      if (!file || !file.path) return;
+      if (!file || !file.path || typeof file.path !== 'string') return;
       const parts = file.path.split('/').filter(Boolean);
       let current = root;
       for (let i = 0; i < parts.length; i++) {

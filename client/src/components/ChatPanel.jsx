@@ -430,7 +430,7 @@ export default function ChatPanel({ room, roomId, socket, user, users = [], onLe
                                 {(() => {
                                   // Parse @username and #filename:line
                                   const tokenRegex = /(@[\w.-]+|#[\w.-]+:\d+)/g;
-                                  const parts = msg.message.split(tokenRegex);
+                                  const parts = (msg.message && typeof msg.message === 'string') ? msg.message.split(tokenRegex) : [msg.message || ''];
                                   return parts.map((part, idx) => {
                                     if (part.startsWith('@')) {
                                       return <span key={idx} style={{ color: '#A78BFA', fontWeight: 600, background: 'rgba(167,139,250,.1)', padding: '0 4px', borderRadius: 4 }}>{part}</span>;
