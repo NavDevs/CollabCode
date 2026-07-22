@@ -6,16 +6,17 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   envDir: process.env.NODE_ENV === 'production' ? './' : '../',
   plugins: [react(), tailwindcss()],
+  optimizeDeps: {
+    include: ['monaco-editor'],
+  },
   server: {
     port: 5173,
     strictPort: false,
-    // WebContainers require cross-origin isolation headers
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'credentialless',
     },
     proxy: {
-      // Proxy /api requests to the backend — bypasses CORS entirely in dev
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
@@ -33,7 +34,7 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('@monaco-editor')) {
+            if (id.includes('monaco-editor') || id.includes('@monaco-editor')) {
               return 'monaco';
             }
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
@@ -45,3 +46,4 @@ export default defineConfig({
     },
   },
 })
+
