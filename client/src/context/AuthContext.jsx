@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
     async function syncUser() {
       if (isAuthLoaded && isUserLoaded) {
         if (isSignedIn && clerkUser) {
+          if (isMounted) setLoading(true);
           try {
             const t = await getToken();
             if (isMounted) setToken(t);
@@ -33,7 +34,6 @@ export function AuthProvider({ children }) {
           } catch (e) {
             console.error('Failed to sync DB user', e);
             // Still allow the app to load even if sync fails
-            // Create a fallback user from Clerk data
             if (isMounted && clerkUser) {
               setDbUser({
                 _id: clerkUser.id,
@@ -43,16 +43,19 @@ export function AuthProvider({ children }) {
                 avatarColor: '#6366F1',
               });
             }
+          } finally {
+            if (isMounted) {
+              setLoading(false);
+              setSyncAttempted(true);
+            }
           }
-        } else {
+        } else if (!isSignedIn) {
           if (isMounted) {
             setDbUser(null);
             setToken(null);
+            setLoading(false);
+            setSyncAttempted(true);
           }
-        }
-        if (isMounted) {
-          setLoading(false);
-          setSyncAttempted(true);
         }
       }
     }
