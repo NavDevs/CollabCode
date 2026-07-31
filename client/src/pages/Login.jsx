@@ -100,10 +100,10 @@ export default function Login() {
           <div className="absolute -inset-0.5 rounded-[32px] bg-gradient-to-b from-indigo-500/40 to-purple-500/10 opacity-50 blur-lg group-hover:opacity-75 transition duration-1000"></div>
           
           {/* The Card */}
-          <div className="relative rounded-[30px] bg-[#0A0A0E]/80 backdrop-blur-2xl border border-white/[0.08] shadow-[0_30px_100px_-15px_rgba(0,0,0,0.8)] p-10 flex flex-col overflow-hidden">
+          <div className="relative rounded-[30px] bg-[#0A0A0E]/80 backdrop-blur-2xl border border-white/[0.08] shadow-[0_30px_100px_-15px_rgba(0,0,0,0.8)] p-10 flex flex-col">
             
             {/* Top edge highlight */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-t-[30px]"></div>
 
             {/* Header / Logo */}
             <div className="mb-12 flex flex-col items-center">
@@ -125,7 +125,7 @@ export default function Login() {
             {/* Auth Button */}
             <button
               onClick={handleGoogleLogin}
-              className="relative flex items-center justify-center gap-3 w-full h-[56px] rounded-2xl bg-white text-gray-900 font-semibold text-[15px] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.4)] active:scale-[0.98] overflow-hidden"
+              className="relative flex items-center justify-center gap-3 w-full py-3.5 rounded-2xl bg-white text-gray-900 font-semibold text-[15px] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.4)] active:scale-[0.98] overflow-hidden"
             >
               {/* Button shimmer effect */}
               <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-gray-100/50 to-transparent hover:animate-[shimmer_1.5s_infinite]"></div>
@@ -140,7 +140,7 @@ export default function Login() {
             </button>
             
             {/* Footer Text */}
-            <p className="mt-8 text-center text-xs text-gray-500 font-medium tracking-wide">
+            <p className="mt-6 text-center text-[13px] text-gray-500 font-medium tracking-wide">
               Secure, fast, and frictionless.
             </p>
           </div>
