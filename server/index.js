@@ -11,6 +11,8 @@ const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const { connectRedis } = require('./config/redis');
 const setupSocket = require('./sockets');
+const passport = require('passport');
+require('./config/passport');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -30,6 +32,9 @@ app.use(helmet({
   crossOriginOpenerPolicy: false,
   frameguard: false,
 }));
+
+// Initialize Passport
+app.use(passport.initialize());
 
 // CORS setup
 const allowedOrigins = [

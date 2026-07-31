@@ -10,16 +10,10 @@ const api = axios.create({
 });
 
 // Attach JWT token to every request
-api.interceptors.request.use(async (config) => {
-  if (window.Clerk && window.Clerk.session) {
-    try {
-      const token = await window.Clerk.session.getToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (e) {
-      console.error('Failed to attach Clerk token:', e);
-    }
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('cc_auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -32,9 +26,8 @@ api.interceptors.response.use(
       // Don't treat room-password prompts as auth failures
       const code = error.response?.data?.code;
       if (code !== 'PASSWORD_REQUIRED') {
-        if (window.Clerk) {
-          window.Clerk.redirectToSignIn();
-        } else {
+        localStorage.removeItem('cc_auth_token');
+        if (window.location.pathname !== '/login') {
           window.location.href = '/login';
         }
       }

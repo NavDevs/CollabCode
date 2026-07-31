@@ -57,19 +57,12 @@ export default function GithubPanel({ roomId, onImportComplete }) {
 
   const handleConnect = async () => {
     try {
-      // Primary: call auth-url with Bearer token via Axios interceptor
+      // Call auth-url with Bearer token via Axios interceptor
       const { data } = await api.get(`/github/auth-url?roomId=${roomId || ''}`);
       window.location.href = data.url;
     } catch (err) {
-      // Fallback: get Clerk token directly and pass in query param
-      let token = '';
-      try {
-        if (window.Clerk && window.Clerk.session) {
-          token = await window.Clerk.session.getToken();
-        }
-      } catch (e) {
-        console.error('Failed to get Clerk token:', e);
-      }
+      // Fallback: use JWT from localStorage
+      const token = localStorage.getItem('cc_auth_token');
       if (!token) {
         toast.error('Please sign in again to connect GitHub.');
         return;

@@ -1,4 +1,4 @@
-const { verifyToken } = require('@clerk/backend');
+const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const User = require('../models/User');
 const { registerRoomHandler, connectedUsers, broadcastRoomUsers } = require('./room.handler');
@@ -21,12 +21,10 @@ const setupSocket = (io) => {
         return next(new Error('Authentication error: No token provided.'));
       }
 
-      const decoded = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      const clerkId = decoded.sub;
-      const user = await User.findOne({ clerkId });
+      const userId = decoded.id;
+      const user = await User.findById(userId);
 
       if (!user) {
         return next(new Error('Authentication error: User not synced.'));
@@ -36,6 +34,7 @@ const setupSocket = (io) => {
       socket.user = user;
       next();
     } catch (error) {
+      console.error('Socket auth error:', error.message);
       return next(new Error('Authentication error: Invalid token.'));
     }
   });

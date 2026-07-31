@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useAuth as useClerkAuth, useUser as useClerkUser } from '@clerk/clerk-react';
 import api from '../services/api';
 
 const AuthContext = createContext(null);
@@ -11,66 +10,67 @@ export const useAuth = () => {
 };
 
 export function AuthProvider({ children }) {
-  const { isLoaded: isAuthLoaded, isSignedIn, getToken, signOut } = useClerkAuth();
-  const { isLoaded: isUserLoaded, user: clerkUser } = useClerkUser();
   const [dbUser, setDbUser] = useState(null);
-  const [token, setToken] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('cc_auth_token') || null);
   const [loading, setLoading] = useState(true);
-  const [syncAttempted, setSyncAttempted] = useState(false);
 
+  // Sync user with backend whenever token changes
   useEffect(() => {
     let isMounted = true;
+    
     async function syncUser() {
-      if (isAuthLoaded && isUserLoaded) {
-        if (isSignedIn && clerkUser) {
-          if (isMounted) setLoading(true);
-          try {
-            const t = await getToken();
-            if (isMounted) setToken(t);
-            const { data } = await api.get('/auth/me', {
-              headers: { Authorization: `Bearer ${t}` }
-            });
-            if (isMounted) setDbUser(data.user);
-          } catch (e) {
-            console.error('Failed to sync DB user', e);
-            // Still allow the app to load even if sync fails
-            if (isMounted && clerkUser) {
-              setDbUser({
-                _id: clerkUser.id,
-                clerkId: clerkUser.id,
-                username: clerkUser.username || clerkUser.firstName || clerkUser.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'user',
-                email: clerkUser.emailAddresses?.[0]?.emailAddress || '',
-                avatarColor: '#6366F1',
-              });
-            }
-          } finally {
-            if (isMounted) {
-              setLoading(false);
-              setSyncAttempted(true);
-            }
-          }
-        } else if (!isSignedIn) {
-          if (isMounted) {
-            setDbUser(null);
+      if (!token) {
+        if (isMounted) {
+          setDbUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        if (isMounted) setLoading(true);
+        const { data } = await api.get('/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (isMounted) {
+          setDbUser(data.user);
+          setLoading(false);
+        }
+      } catch (e) {
+        console.error('Failed to sync DB user', e);
+        if (isMounted) {
+          // If token is invalid/expired, clear it
+          if (e.response && e.response.status === 401) {
+            localStorage.removeItem('cc_auth_token');
             setToken(null);
-            setLoading(false);
-            setSyncAttempted(true);
           }
+          setDbUser(null);
+          setLoading(false);
         }
       }
     }
+    
     syncUser();
+    
     return () => { isMounted = false; };
-  }, [isAuthLoaded, isUserLoaded, isSignedIn, clerkUser?.id, getToken]);
+  }, [token]);
 
-  const logout = useCallback(async () => {
-    await signOut();
-    setDbUser(null);
+  const loginWithToken = useCallback((newToken) => {
+    localStorage.setItem('cc_auth_token', newToken);
+    setToken(newToken);
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('cc_auth_token');
     setToken(null);
-  }, [signOut]);
+    setDbUser(null);
+    // Force a reload to clear any residual state
+    window.location.href = '/login';
+  }, []);
 
-  const login = () => {};
-  const register = () => {};
+  // Provide a getToken function that mimics Clerk for existing code compatibility
+  const getToken = useCallback(async () => token, [token]);
 
   return (
     <AuthContext.Provider
@@ -79,9 +79,8 @@ export function AuthProvider({ children }) {
         setUser: setDbUser, 
         token, 
         loading, 
-        login, 
-        register, 
         logout, 
+        loginWithToken,
         isAuthenticated: !!dbUser,
         getToken,
       }}
