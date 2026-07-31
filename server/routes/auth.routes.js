@@ -32,7 +32,7 @@ router.get('/google/callback', (req, res, next) => {
     
     if (err) {
       console.error('❌ Google OAuth callback error:', err.message);
-      return res.redirect(`${clientUrl}/login?error=google_failed`);
+      return res.redirect(`${clientUrl}/login?error=google_failed&details=${encodeURIComponent(err.message)}`);
     }
     
     if (!user) {
