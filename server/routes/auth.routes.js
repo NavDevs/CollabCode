@@ -25,16 +25,28 @@ router.get('/google', passport.authenticate('google', {
 
 // @route GET /api/auth/google/callback
 // @desc Handle Google OAuth callback
-router.get('/google/callback', passport.authenticate('google', { session: false, failureRedirect: '/login?error=true' }), (req, res) => {
-  if (!req.user) {
-    return res.redirect(`${process.env.CLIENT_URL}/login?error=true`);
-  }
+router.get('/google/callback', (req, res, next) => {
+  passport.authenticate('google', { session: false }, (err, user, info) => {
+    // Determine redirect base
+    const clientUrl = process.env.CLIENT_URL || '';
+    
+    if (err) {
+      console.error('❌ Google OAuth callback error:', err.message);
+      return res.redirect(`${clientUrl}/login?error=google_failed`);
+    }
+    
+    if (!user) {
+      console.error('❌ Google OAuth: No user returned', info);
+      return res.redirect(`${clientUrl}/login?error=no_user`);
+    }
 
-  // Generate JWT token for our app
-  const token = generateToken(req.user._id);
+    // Generate JWT token for our app
+    const token = generateToken(user._id);
+    console.log('✅ Google OAuth success, redirecting with token for:', user.username);
 
-  // Redirect to frontend with token
-  res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
+    // Redirect to frontend with token
+    res.redirect(`${clientUrl}/auth/callback?token=${token}`);
+  })(req, res, next);
 });
 
 module.exports = router;
