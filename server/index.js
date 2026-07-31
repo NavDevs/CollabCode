@@ -166,7 +166,18 @@ app.use(express.json({ limit: '5mb' }));
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
+  res.json({
+    status: 'ok',
+    timestamp: Date.now(),
+    env: {
+      AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID ? '✅ SET (' + process.env.AUTH_GOOGLE_ID.slice(0, 10) + '...)' : '❌ MISSING',
+      AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET ? '✅ SET' : '❌ MISSING',
+      CLIENT_URL: process.env.CLIENT_URL || '❌ MISSING',
+      RENDER_EXTERNAL_URL: process.env.RENDER_EXTERNAL_URL || '❌ MISSING',
+      JWT_SECRET: process.env.JWT_SECRET ? '✅ SET' : '❌ MISSING',
+      MONGODB_URI: process.env.MONGODB_URI ? '✅ SET' : '❌ MISSING',
+    }
+  });
 });
 
 // Mount API routes
