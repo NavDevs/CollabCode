@@ -188,18 +188,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/github', githubRoutes);
 
-// Serve frontend in production
-if (process.env.NODE_ENV === 'production') {
-  const clientDist = path.join(__dirname, '../client/dist');
-  app.use(express.static(clientDist));
-  
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.includes('.')) {
-      return next();
-    }
-    res.sendFile(path.resolve(clientDist, 'index.html'));
-  });
-}
+// Serve frontend in production (REMOVED - Frontend is now hosted separately as a Static Site)
 
 // Create HTTP server and Socket.IO
 const server = http.createServer(app);
