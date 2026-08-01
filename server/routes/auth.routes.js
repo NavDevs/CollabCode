@@ -27,8 +27,9 @@ router.get('/google', passport.authenticate('google', {
 // @desc Handle Google OAuth callback
 router.get('/google/callback', (req, res, next) => {
   passport.authenticate('google', { session: false }, (err, user, info) => {
-    // Determine redirect base
-    const clientUrl = process.env.CLIENT_URL || '';
+    // Determine redirect base and ensure no trailing slash
+    let clientUrl = process.env.CLIENT_URL || '';
+    if (clientUrl.endsWith('/')) clientUrl = clientUrl.slice(0, -1);
     
     if (err) {
       console.error('❌ Google OAuth callback error:', err.message);
