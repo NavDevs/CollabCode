@@ -95,7 +95,8 @@ router.get('/auth', auth, (req, res) => {
  * fetches user details from GitHub, and updates the user record.
  */
 router.get('/callback', async (req, res) => {
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  let clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  if (clientUrl.endsWith('/')) clientUrl = clientUrl.slice(0, -1);
   try {
     const { code, state } = req.query;
 
