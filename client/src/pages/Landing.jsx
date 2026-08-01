@@ -164,7 +164,7 @@ export default function Landing() {
             Sign In
           </button>
           <button
-            onClick={() => navigate('/register')}
+            onClick={() => navigate('/login')}
             style={{ padding: isMobile ? '6px 12px' : '8px 18px', borderRadius: 9, background: '#FFFFFF', color: '#000000', fontSize: isMobile ? 12 : 14, fontWeight: 600, cursor: 'pointer', border: 'none', boxShadow: '0 4px 16px rgba(255,255,255,.15)', transition: 'all .15s', transform: 'scale(1)' }}
             onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
             onMouseUp={e => e.currentTarget.style.transform = 'translateY(-1px)'}
@@ -207,7 +207,7 @@ export default function Landing() {
         {/* CTA buttons */}
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
           <button
-            onClick={() => navigate('/register')}
+            onClick={() => navigate('/login')}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 28px', borderRadius: 12, background: '#FFFFFF', color: '#000000', fontSize: 15, fontWeight: 700, cursor: 'pointer', border: 'none', boxShadow: '0 6px 28px rgba(255,255,255,.15)', transition: 'all .2s', letterSpacing: '0.01em', transform: 'scale(1)' }}
             onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
             onMouseUp={e => e.currentTarget.style.transform = 'translateY(-2px)'}
@@ -218,7 +218,7 @@ export default function Landing() {
             Start Coding Free
           </button>
           <button
-            onClick={() => navigate('/register')}
+            onClick={() => navigate('/login')}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 24px', borderRadius: 12, background: 'rgba(255,255,255,.05)', color: '#D1D5DB', fontSize: 15, fontWeight: 600, cursor: 'pointer', border: '1px solid rgba(255,255,255,.1)', transition: 'all .15s', transform: 'scale(1)' }}
             onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
             onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
