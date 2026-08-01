@@ -8,7 +8,15 @@ export const useSocket = () => useContext(SocketContext);
 
 // In production (single-service deploy), socket connects to same origin.
 // In dev, Vite proxy handles forwarding.
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || '';
+let defaultSocketUrl = '';
+try {
+  if (API_URL && API_URL.startsWith('http')) {
+    defaultSocketUrl = new URL(API_URL).origin;
+  }
+} catch (e) {}
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || defaultSocketUrl;
 
 export function SocketProvider({ children }) {
   const { token, isAuthenticated, getToken } = useAuth();
