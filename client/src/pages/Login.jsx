@@ -30,22 +30,28 @@ export default function Login() {
       {/* ─── LEFT SIDE: LOGIN FORM ─── */}
       <div className="w-full lg:w-[45%] flex flex-col justify-center items-center p-8 lg:p-20 relative z-10">
         
-        <div className="w-full max-w-[420px] anim-fade-up flex flex-col items-center">
-          {/* Logo */}
-          <div className="mb-24 flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 mb-10 shadow-lg">
+        <div className="w-full max-w-[420px] anim-fade-up" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          
+          {/* Logo Section */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '80px' }}>
+            <div 
+              style={{ marginBottom: '40px' }}
+              className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 shadow-lg"
+            >
               <BrandMark size={36} />
             </div>
-            <h1 className="text-[42px] mt-6 leading-tight font-bold tracking-tight text-white mb-6">
+            
+            <h1 style={{ marginTop: '20px', marginBottom: '16px' }} className="text-[42px] leading-tight font-bold tracking-tight text-white">
               Welcome back
             </h1>
-            <p className="text-[16px] mt-2 text-gray-400 leading-relaxed max-w-[320px]">
+            
+            <p style={{ marginTop: '8px' }} className="text-[16px] text-gray-400 leading-relaxed max-w-[320px]">
               Sign in to your CollabCode account to continue collaborating.
             </p>
           </div>
 
-          {/* Login Action */}
-          <div className="flex flex-col gap-10 w-full max-w-[340px]">
+          {/* Login Action Section */}
+          <div className="w-full max-w-[340px]" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             <button
               onClick={handleGoogleLogin}
               className="group relative flex w-full items-center justify-center gap-4 rounded-2xl bg-white text-black font-semibold py-4 px-4 transition-all duration-300 hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] shadow-xl"
@@ -60,13 +66,13 @@ export default function Login() {
             </button>
             
             {/* Divider */}
-            <div className="flex items-center gap-5 mt-2 mb-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '16px', marginBottom: '16px' }}>
               <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/10"></div>
               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.2em]">Secure</span>
               <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/10"></div>
             </div>
 
-            <p className="text-[13px] text-gray-500 text-center px-4 leading-relaxed">
+            <p style={{ marginTop: '12px' }} className="text-[13px] text-gray-500 text-center px-4 leading-relaxed">
               By clicking continue, you agree to our <br/> Terms of Service and Privacy Policy.
             </p>
           </div>
