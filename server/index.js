@@ -43,7 +43,9 @@ const allowedOrigins = [
   'http://localhost:5175',
   process.env.CLIENT_URL,
   process.env.VITE_SOCKET_URL,
-].filter(Boolean);
+]
+  .filter(Boolean)
+  .map(url => url.endsWith('/') ? url.slice(0, -1) : url);
 
 app.use(
   cors({
