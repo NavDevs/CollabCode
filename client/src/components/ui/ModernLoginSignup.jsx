@@ -222,7 +222,6 @@ export default function ModernLoginSignup({ onGoogleLogin }) {
             <p style={{ fontSize: "0.85rem", color: "#888", marginBottom: "0.85rem", lineHeight: 1.5 }}>Sign in to continue collaborating.</p>
 
             <button onClick={onGoogleLogin} style={{ ...socialBtn, marginTop: "1rem" }}>{GoogleIcon}Continue with Google</button>
-            <button onClick={onGoogleLogin} style={socialBtn}>{GitHubIcon}Continue with GitHub</button>
 
             <div style={{ marginTop: "1.25rem", fontSize: "0.875rem", color: "#888" }}>
               Don't have an account?{" "}
@@ -237,7 +236,6 @@ export default function ModernLoginSignup({ onGoogleLogin }) {
             <p style={{ fontSize: "0.85rem", color: "#888", marginBottom: "0.85rem", lineHeight: 1.5 }}>Create a new account to get started.</p>
 
             <button onClick={onGoogleLogin} style={{ ...socialBtn, marginTop: "1rem" }}>{GoogleIcon}Sign up with Google</button>
-            <button onClick={onGoogleLogin} style={socialBtn}>{GitHubIcon}Sign up with GitHub</button>
 
             <div style={{ marginTop: "1.25rem", fontSize: "0.875rem", color: "#888" }}>
               Already have an account?{" "}
