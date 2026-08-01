@@ -412,7 +412,7 @@ export default function Landing() {
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
-                onClick={() => navigate('/register')}
+                onClick={() => navigate('/login')}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 28px', borderRadius: 12, background: '#FFFFFF', color: '#000000', fontSize: 15, fontWeight: 700, cursor: 'pointer', border: 'none', boxShadow: '0 4px 20px rgba(255,255,255,.1)', transition: 'all .2s', transform: 'scale(1)' }}
                 onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
                 onMouseUp={e => e.currentTarget.style.transform = 'translateY(-2px)'}
@@ -423,7 +423,7 @@ export default function Landing() {
                 Get started — it's free
               </button>
               <button
-                onClick={() => navigate('/register')}
+                onClick={() => navigate('/login')}
                 style={{ padding: '13px 24px', borderRadius: 12, background: 'rgba(255,255,255,.05)', color: '#D1D5DB', fontSize: 15, fontWeight: 600, cursor: 'pointer', border: '1px solid rgba(255,255,255,.1)', transition: 'all .15s', transform: 'scale(1)' }}
                 onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
                 onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
