@@ -32,23 +32,23 @@ export default function Login() {
         
         <div className="w-full max-w-[420px] anim-fade-up flex flex-col items-center">
           {/* Logo */}
-          <div className="mb-14 flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 mb-8 shadow-lg">
+          <div className="mb-24 flex flex-col items-center text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 mb-10 shadow-lg">
               <BrandMark size={36} />
             </div>
-            <h1 className="text-[40px] leading-tight font-bold tracking-tight text-white mb-4">
+            <h1 className="text-[42px] mt-6 leading-tight font-bold tracking-tight text-white mb-6">
               Welcome back
             </h1>
-            <p className="text-[15px] text-gray-400 leading-relaxed max-w-[320px]">
+            <p className="text-[16px] mt-2 text-gray-400 leading-relaxed max-w-[320px]">
               Sign in to your CollabCode account to continue collaborating.
             </p>
           </div>
 
           {/* Login Action */}
-          <div className="flex flex-col gap-8 w-full max-w-[340px]">
+          <div className="flex flex-col gap-10 w-full max-w-[340px]">
             <button
               onClick={handleGoogleLogin}
-              className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-white text-black font-semibold py-4 px-4 transition-all duration-300 hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] shadow-xl"
+              className="group relative flex w-full items-center justify-center gap-4 rounded-2xl bg-white text-black font-semibold py-4 px-4 transition-all duration-300 hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] shadow-xl"
             >
               <svg viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg" className="transition-transform group-hover:scale-110 duration-300">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
