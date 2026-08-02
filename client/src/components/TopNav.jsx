@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMobile } from '../hooks/useMobile';
-import NotificationDropdown from './NotificationDropdown';
 import HelpModal from './HelpModal';
 import BrandMark from './BrandMark';
 
@@ -130,7 +129,6 @@ export default function TopNav({ subtitle, rightContent, showNav = true }) {
         {/* ── Right ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {rightContent}
-          <NotificationDropdown />
           <IconBtn icon="settings" title="Settings" onClick={() => navigate('/settings')} />
           <IconBtn icon="help_outline" title="Help" onClick={() => setShowHelp(true)} />
 
