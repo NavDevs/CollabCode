@@ -4,7 +4,7 @@
 
 ### Build Full-Stack Apps Together — Live in Your Browser
 
-[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-collabcode--front--end.onrender.com-059669?style=for-the-badge&logoColor=white)](https://collabcode-front-end.onrender.com/)
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Click_Here-059669?style=for-the-badge)](https://collabcode-front-end.onrender.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-v19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
