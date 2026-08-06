@@ -4,7 +4,7 @@
 
 ### Build Full-Stack Apps Together — Live in Your Browser
 
-[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Click_Here-059669?style=for-the-badge)](https://collabcode-front-end.onrender.com/)
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Click_Here-059669?style=for-the-badge&logoColor=white)](https://collabcode-front-end.onrender.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-v19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
@@ -20,7 +20,7 @@
 
 ## 🌐 Live Website
 
-### **[https://collabcode-hu9d.onrender.com](https://collabcode-hu9d.onrender.com)**
+### **[https://collabcode-front-end.onrender.com/](https://collabcode-front-end.onrender.com/)**
 
 > Sign up, create a room, share the link, and start building together! No installation required.
 
@@ -694,10 +694,10 @@ npm start
 Set all variables from `.env.example` in Render's dashboard, plus:
 ```
 NODE_ENV=production
-RENDER_EXTERNAL_URL=https://collabcode-hu9d.onrender.com
-CLIENT_URL=https://collabcode-hu9d.onrender.com
+RENDER_EXTERNAL_URL=https://collabcode-front-end.onrender.com
+CLIENT_URL=https://collabcode-front-end.onrender.com
 VITE_API_URL=/api
-GITHUB_REDIRECT_URI=https://collabcode-hu9d.onrender.com/api/github/callback
+GITHUB_REDIRECT_URI=https://collabcode-front-end.onrender.com/api/github/callback
 ```
 
 ---
